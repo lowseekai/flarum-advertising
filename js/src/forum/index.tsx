@@ -46,6 +46,8 @@ class AdvertisingPage extends Page {
   private loading = true;
   private submitting = false;
   private uploadedPath = '';
+  private uploadedFileName = '';
+  private fileInput: HTMLInputElement | null = null;
   private form = { slotKey: 'sidebar', title: '', targetUrl: '', durationDays: 7 };
 
   oninit(vnode: Mithril.Vnode) {
@@ -146,11 +148,30 @@ class AdvertisingPage extends Page {
         <div className="Form-group">
           <label>{app.translator.trans('lowseekai-advertising.forum.image')}</label>
           <input
-            className="FormControl"
+            className="LowseekaiAdvertising-fileInput"
             type="file"
             accept="image/jpeg,image/png,image/webp"
+            oncreate={(vnode: any) => (this.fileInput = vnode.dom as HTMLInputElement)}
             onchange={(event: any) => this.upload(event.target.files?.[0])}
           />
+          <div className="LowseekaiAdvertising-filePicker">
+            <Button type="button" className="Button Button--secondary" icon="fas fa-image" onclick={() => this.fileInput?.click()}>
+              {app.translator.trans('lowseekai-advertising.forum.choose_file')}
+            </Button>
+            <span className="LowseekaiAdvertising-fileName">
+              {this.uploadedFileName || app.translator.trans('lowseekai-advertising.forum.no_file')}
+            </span>
+            {this.uploadedPath ? (
+              <Button
+                type="button"
+                className="Button Button--icon Button--link LowseekaiAdvertising-fileRemove"
+                icon="fas fa-times"
+                aria-label={app.translator.trans('lowseekai-advertising.forum.remove_file')}
+                title={app.translator.trans('lowseekai-advertising.forum.remove_file')}
+                onclick={() => this.clearUploadedFile()}
+              />
+            ) : null}
+          </div>
           {this.uploadedPath ? <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.uploaded')}</p> : null}
         </div>
         <div className="Form-group">
@@ -208,10 +229,22 @@ class AdvertisingPage extends Page {
     try {
       const response: any = await app.request({ method: 'POST', url: this.apiUrl('/advertising/upload-image'), body });
       this.uploadedPath = response.data?.path || '';
+      this.uploadedFileName = file.name;
       app.alerts.show({ type: 'success' }, app.translator.trans('lowseekai-advertising.forum.upload_success'));
     } catch (error) {
       app.alerts.show({ type: 'error' }, this.errorMessage(error));
     }
+    m.redraw();
+  }
+
+  clearUploadedFile() {
+    this.uploadedPath = '';
+    this.uploadedFileName = '';
+
+    if (this.fileInput) {
+      this.fileInput.value = '';
+    }
+
     m.redraw();
   }
 
@@ -230,6 +263,8 @@ class AdvertisingPage extends Page {
       app.alerts.show({ type: 'success' }, app.translator.trans('lowseekai-advertising.forum.pending_success'));
       this.form = { slotKey: 'sidebar', title: '', targetUrl: '', durationDays: 7 };
       this.uploadedPath = '';
+      this.uploadedFileName = '';
+      if (this.fileInput) this.fileInput.value = '';
       await this.load();
     } catch (error) {
       app.alerts.show({ type: 'error' }, this.errorMessage(error));
@@ -328,8 +363,10 @@ app.initializers.add('lowseekai/advertising/forum', () => {
       <LinkButton href={app.route('lowseekai-advertising.index')} icon="fas fa-bullhorn">
         {app.translator.trans('lowseekai-advertising.forum.nav')}
       </LinkButton>,
-      80
+      50
     );
+    items.setPriority('newDiscussion', 100);
+    items.setPriority('nav', 0);
     items.add('lowseekai-advertising-sidebar', <AdvertisingSidebar />, -20);
   });
 });

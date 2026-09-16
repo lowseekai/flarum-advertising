@@ -78,24 +78,26 @@ class AdvertisingSettingsPage extends ExtensionPage {
 
   content() {
     return (
-      <div className="LowseekaiAdvertisingAdmin">
-        <h2>{app.translator.trans('lowseekai-advertising.admin.title')}</h2>
-        <p className="helpText">{app.translator.trans('lowseekai-advertising.admin.help')}</p>
-        {this.configLoaded ? this.configForm() : <LoadingIndicator />}
-        <div className="LowseekaiAdvertisingAdmin-review">
-          <div className="LowseekaiAdvertisingAdmin-heading">
-            <h3>{app.translator.trans('lowseekai-advertising.admin.pending_title')}</h3>
-            <Button icon="fas fa-sync" onclick={() => this.loadAds()} loading={this.loadingAds}>
-              {app.translator.trans('lowseekai-advertising.admin.refresh')}
-            </Button>
+      <div className="container">
+        <div className="LowseekaiAdvertisingAdmin">
+          <h2>{app.translator.trans('lowseekai-advertising.admin.title')}</h2>
+          <p className="helpText">{app.translator.trans('lowseekai-advertising.admin.help')}</p>
+          {this.configLoaded ? this.configForm() : <LoadingIndicator />}
+          <div className="LowseekaiAdvertisingAdmin-review">
+            <div className="LowseekaiAdvertisingAdmin-heading">
+              <h3>{app.translator.trans('lowseekai-advertising.admin.pending_title')}</h3>
+              <Button icon="fas fa-sync" onclick={() => this.loadAds()} loading={this.loadingAds}>
+                {app.translator.trans('lowseekai-advertising.admin.refresh')}
+              </Button>
+            </div>
+            {this.loadingAds ? (
+              <LoadingIndicator />
+            ) : this.ads.length ? (
+              this.ads.map((ad) => this.adRow(ad))
+            ) : (
+              <p className="helpText">{app.translator.trans('lowseekai-advertising.admin.empty')}</p>
+            )}
           </div>
-          {this.loadingAds ? (
-            <LoadingIndicator />
-          ) : this.ads.length ? (
-            this.ads.map((ad) => this.adRow(ad))
-          ) : (
-            <p className="helpText">{app.translator.trans('lowseekai-advertising.admin.empty')}</p>
-          )}
         </div>
       </div>
     );
