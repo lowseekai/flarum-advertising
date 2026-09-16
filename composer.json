@@ -1,0 +1,42 @@
+{
+    "name": "lowseekai/flarum-advertising",
+    "description": "Self-serve advertising slots for Flarum 2 powered by Point System.",
+    "keywords": [
+        "flarum",
+        "advertising",
+        "ads",
+        "points"
+    ],
+    "type": "flarum-extension",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "flarum/core": "^2.0.0-rc.8",
+        "ramon/point-system": "dev-main"
+    },
+    "autoload": {
+        "psr-4": {
+            "Lowseekai\\Advertising\\": "src/"
+        }
+    },
+    "extra": {
+        "flarum-extension": {
+            "title": "Advertising",
+            "category": "feature",
+            "icon": {
+                "name": "fas fa-rectangle-ad",
+                "color": "#ffffff",
+                "backgroundColor": "#2563eb"
+            }
+        }
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/lowseekai/point-system.git",
+            "no-api": true
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

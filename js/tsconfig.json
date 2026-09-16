@@ -1,0 +1,17 @@
+{
+  "extends": "flarum-tsconfig",
+  "include": [
+    "src/**/*",
+    "../../iseekup/flarum-core-2/framework/core/js/dist-typings/@types/**/*"
+  ],
+  "compilerOptions": {
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "flarum/*": [
+        "../../iseekup/flarum-core-2/framework/core/js/dist-typings/*"
+      ]
+    }
+  }
+}
