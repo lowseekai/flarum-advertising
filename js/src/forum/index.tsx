@@ -357,16 +357,17 @@ app.initializers.add('lowseekai/advertising/forum', () => {
     items.add('lowseekai-advertising-top', <AdvertisingTop />, 105);
   });
 
-  extend(IndexSidebar.prototype, 'items', (items: any) => {
+  extend(IndexSidebar.prototype, 'navItems', (items: any) => {
     items.add(
       'lowseekai-advertising',
       <LinkButton href={app.route('lowseekai-advertising.index')} icon="fas fa-bullhorn">
         {app.translator.trans('lowseekai-advertising.forum.nav')}
       </LinkButton>,
-      50
+      95
     );
-    items.setPriority('newDiscussion', 100);
-    items.setPriority('nav', 0);
+  });
+
+  extend(IndexSidebar.prototype, 'items', (items: any) => {
     items.add('lowseekai-advertising-sidebar', <AdvertisingSidebar />, -20);
   });
 });
