@@ -96,25 +96,31 @@ class AdvertisingPage extends Page {
   content() {
     if (this.loading) return <LoadingIndicator />;
     return [
-      <section className="LowseekaiAdvertising-list">
-        <div className="LowseekaiAdvertising-sectionHeading">
-          <h2>{app.translator.trans('lowseekai-advertising.forum.active_ads')}</h2>
-          <Button icon="fas fa-sync" onclick={() => this.load()}>
-            {app.translator.trans('lowseekai-advertising.forum.refresh')}
-          </Button>
-        </div>
-        {this.ads.length ? (
-          this.ads.map((ad) => <AdCard ad={ad} key={ad.id} />)
+      <div className="container">
+        <section className="LowseekaiAdvertising-list">
+          <div className="LowseekaiAdvertising-sectionHeading">
+            <h2>{app.translator.trans('lowseekai-advertising.forum.active_ads')}</h2>
+            <Button
+              className="Button--icon"
+              icon="fas fa-sync"
+              aria-label={app.translator.trans('lowseekai-advertising.forum.refresh')}
+              title={app.translator.trans('lowseekai-advertising.forum.refresh')}
+              onclick={() => this.load()}
+            />
+          </div>
+          {this.ads.length ? (
+            this.ads.map((ad) => <AdCard ad={ad} key={ad.id} />)
+          ) : (
+            <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.no_ads')}</p>
+          )}
+        </section>
+        {app.forum.attribute('lowseekaiAdvertisingCanSubmit') ? (
+          this.applyForm()
         ) : (
-          <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.no_ads')}</p>
+          <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.no_permission')}</p>
         )}
-      </section>,
-      app.forum.attribute('lowseekaiAdvertisingCanSubmit') ? (
-        this.applyForm()
-      ) : (
-        <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.no_permission')}</p>
-      ),
-      app.session.user ? this.myAdsView() : null,
+        {app.session.user ? this.myAdsView() : null}
+      </div>,
     ];
   }
 

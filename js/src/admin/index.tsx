@@ -86,9 +86,14 @@ class AdvertisingSettingsPage extends ExtensionPage {
           <div className="LowseekaiAdvertisingAdmin-review">
             <div className="LowseekaiAdvertisingAdmin-heading">
               <h3>{app.translator.trans('lowseekai-advertising.admin.pending_title')}</h3>
-              <Button icon="fas fa-sync" onclick={() => this.loadAds()} loading={this.loadingAds}>
-                {app.translator.trans('lowseekai-advertising.admin.refresh')}
-              </Button>
+              <Button
+                className="Button--icon"
+                icon="fas fa-sync"
+                aria-label={app.translator.trans('lowseekai-advertising.admin.refresh')}
+                title={app.translator.trans('lowseekai-advertising.admin.refresh')}
+                onclick={() => this.loadAds()}
+                loading={this.loadingAds}
+              />
             </div>
             {this.loadingAds ? (
               <LoadingIndicator />
