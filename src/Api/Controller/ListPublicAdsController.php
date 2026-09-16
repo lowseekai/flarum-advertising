@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Lowseekai\Advertising\Api\Controller;
 
+use Carbon\Carbon;
 use Flarum\Http\RequestUtil;
 use Laminas\Diactoros\Response\JsonResponse;
 use Lowseekai\Advertising\Model\Ad;
@@ -34,10 +35,10 @@ class ListPublicAdsController implements RequestHandlerInterface
             ->where('status', 'approved')
             ->where('is_visible', true)
             ->where(function ($query) {
-                $query->whereNull('starts_at')->orWhere('starts_at', '<=', now());
+                $query->whereNull('starts_at')->orWhere('starts_at', '<=', Carbon::now());
             })
             ->where(function ($query) {
-                $query->whereNull('ends_at')->orWhere('ends_at', '>', now());
+                $query->whereNull('ends_at')->orWhere('ends_at', '>', Carbon::now());
             })
             ->when($slot !== '', fn ($query) => $query->where('slot_key', $slot))
             ->orderBy('sort_order')
