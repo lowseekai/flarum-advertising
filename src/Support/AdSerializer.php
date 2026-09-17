@@ -22,7 +22,10 @@ class AdSerializer
             'imageUrl' => $this->imageUrl((string) $ad->image_path),
             'targetUrl' => (string) $ad->target_url,
             'durationDays' => (int) $ad->duration_days,
+            'durationPlan' => $ad->duration_plan ?: $this->durationPlan((int) $ad->duration_days),
             'pricePerDay' => (int) $ad->price_per_day,
+            'pricePerMonth' => (int) $ad->price_per_day,
+            'durationLabel' => $this->durationLabel($ad->duration_plan ?: $this->durationPlan((int) $ad->duration_days)),
             'totalPrice' => (int) $ad->total_price,
             'status' => (string) $ad->status,
             'isVisible' => (bool) $ad->is_visible,
@@ -48,5 +51,21 @@ class AdSerializer
         }
 
         return '/'.ltrim($path, '/');
+    }
+
+    protected function durationPlan(int $days): string
+    {
+        foreach (AdvertisingSettings::DURATION_PLANS as $key => $plan) {
+            if ((int) $plan['days'] === $days) {
+                return $key;
+            }
+        }
+
+        return '1_month';
+    }
+
+    protected function durationLabel(string $planKey): string
+    {
+        return AdvertisingSettings::DURATION_PLANS[$planKey]['label'] ?? $planKey;
     }
 }

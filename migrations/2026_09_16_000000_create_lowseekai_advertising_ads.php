@@ -16,7 +16,8 @@ return [
             $table->string('title', 120);
             $table->string('image_path', 500);
             $table->string('target_url', 500);
-            $table->unsignedSmallInteger('duration_days')->default(7);
+            $table->unsignedSmallInteger('duration_days')->default(30);
+            $table->string('duration_plan', 30)->nullable();
             $table->unsignedInteger('price_per_day')->default(0);
             $table->unsignedInteger('total_price')->default(0);
             $table->unsignedInteger('point_transaction_id')->nullable();

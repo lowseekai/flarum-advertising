@@ -17,6 +17,7 @@ class AdRepository
         protected AdvertisingSettings $settings,
         protected PointsRepository $points,
         protected ConnectionInterface $db,
+        protected AdvertisingNotifier $notifier,
     ) {
     }
 
@@ -27,8 +28,12 @@ class AdRepository
         }
 
         $slotKey = $this->normalizeSlotKey($attributes['slotKey'] ?? 'sidebar');
-        $durationDays = $this->normalizeDuration($attributes['durationDays'] ?? 7);
-        $pricePerDay = $this->settings->pricePerDay($slotKey);
+        $durationPlanKey = $this->normalizeDurationPlan($attributes['durationPlan'] ?? $attributes['durationDays'] ?? '1_month');
+        $durationPlan = $this->settings->durationPlan($durationPlanKey);
+        $totalPrice = $this->totalPrice($slotKey, $durationPlanKey);
+
+        // Do not reserve points while pending; approval rechecks atomically.
+        $this->assertSufficientBalance($actor, $totalPrice);
 
         $ad = new Ad();
         $ad->user_id = (int) $actor->id;
@@ -36,21 +41,27 @@ class AdRepository
         $ad->title = $this->normalizeTitle($attributes['title'] ?? '');
         $ad->image_path = $this->normalizeImagePath($attributes['imagePath'] ?? '');
         $ad->target_url = $this->normalizeUrl($attributes['targetUrl'] ?? '');
-        $ad->duration_days = $durationDays;
-        $ad->price_per_day = $pricePerDay;
-        $ad->total_price = $durationDays * $pricePerDay;
+        $ad->duration_plan = $durationPlanKey;
+        $ad->duration_days = (int) $durationPlan['days'];
+        $ad->price_per_day = $this->settings->pricePerMonth($slotKey);
+        $ad->total_price = $totalPrice;
         $ad->status = 'pending';
         $ad->is_visible = false;
         $ad->sort_order = 0;
         $ad->save();
 
-        return $ad->fresh('user');
+        $ad = $ad->fresh('user');
+        $this->notifier->notifyPendingReview($ad, $actor);
+
+        return $ad;
     }
 
     public function updateByAdmin(User $actor, Ad $ad, array $attributes): Ad
     {
-        return $this->db->transaction(function () use ($actor, $ad, $attributes) {
+        $statusChanged = false;
+        $updated = $this->db->transaction(function () use ($actor, $ad, $attributes, &$statusChanged) {
             $previousStatus = (string) $ad->status;
+            $pricingChanged = false;
 
             if (array_key_exists('title', $attributes)) {
                 $ad->title = $this->normalizeTitle($attributes['title']);
@@ -63,12 +74,18 @@ class AdRepository
             }
             if (array_key_exists('slotKey', $attributes)) {
                 $ad->slot_key = $this->normalizeSlotKey($attributes['slotKey']);
+                $pricingChanged = true;
             }
-            if (array_key_exists('durationDays', $attributes)) {
-                $ad->duration_days = $this->normalizeDuration($attributes['durationDays']);
+            if (array_key_exists('durationPlan', $attributes) || array_key_exists('durationDays', $attributes)) {
+                $planKey = $this->normalizeDurationPlan($attributes['durationPlan'] ?? $attributes['durationDays']);
+                $plan = $this->settings->durationPlan($planKey);
+                $ad->duration_plan = $planKey;
+                $ad->duration_days = (int) $plan['days'];
+                $pricingChanged = true;
             }
-            if (array_key_exists('pricePerDay', $attributes)) {
-                $ad->price_per_day = max(0, (int) $attributes['pricePerDay']);
+            if (array_key_exists('pricePerMonth', $attributes) || array_key_exists('pricePerDay', $attributes)) {
+                $ad->price_per_day = max(0, (int) ($attributes['pricePerMonth'] ?? $attributes['pricePerDay']));
+                $pricingChanged = true;
             }
             if (array_key_exists('sortOrder', $attributes)) {
                 $ad->sort_order = (int) $attributes['sortOrder'];
@@ -77,10 +94,14 @@ class AdRepository
                 $ad->review_note = $this->nullableText($attributes['reviewNote']);
             }
 
-            $ad->total_price = max(0, (int) $ad->duration_days * (int) $ad->price_per_day);
+            if ($pricingChanged) {
+                $ad->total_price = max(0, (int) $ad->price_per_day * $this->monthsForAd($ad));
+            }
 
             if (array_key_exists('status', $attributes)) {
-                $this->applyStatus($ad, (string) $attributes['status'], $previousStatus);
+                $status = (string) $attributes['status'];
+                $this->applyStatus($ad, $status, $previousStatus);
+                $statusChanged = $status !== $previousStatus;
             } elseif (array_key_exists('isVisible', $attributes)) {
                 $ad->is_visible = (bool) $attributes['isVisible'] && $ad->status === 'approved';
             }
@@ -91,6 +112,12 @@ class AdRepository
 
             return $ad->fresh('user');
         });
+
+        if ($statusChanged) {
+            $this->notifier->notifyReviewed($updated, $actor);
+        }
+
+        return $updated;
     }
 
     public function expireDueAds(int $limit = 500): int
@@ -111,6 +138,19 @@ class AdRepository
         return $ads->count();
     }
 
+    public function totalPrice(string $slotKey, string $durationPlanKey): int
+    {
+        $slotKey = $this->normalizeSlotKey($slotKey);
+        $plan = $this->settings->durationPlan($this->normalizeDurationPlan($durationPlanKey));
+
+        return $this->settings->pricePerMonth($slotKey) * (int) $plan['months'];
+    }
+
+    public function balance(User $user): int
+    {
+        return (int) $this->points->getOrCreate($user)->balance;
+    }
+
     protected function applyStatus(Ad $ad, string $status, string $previousStatus): void
     {
         if (! in_array($status, ['pending', 'approved', 'rejected', 'expired'], true)) {
@@ -122,9 +162,15 @@ class AdRepository
         if ($status === 'approved') {
             if ($previousStatus !== 'approved' && ! $ad->point_transaction_id && $ad->total_price > 0) {
                 try {
-                    $tx = $this->points->deduct($ad->user, (int) $ad->total_price, 'advertising.purchase', 'advertising_ad', (int) $ad->id);
+                    $tx = $this->points->deduct(
+                        $ad->user,
+                        (int) $ad->total_price,
+                        'advertising.purchase',
+                        'advertising_ad',
+                        (int) $ad->id
+                    );
                 } catch (\DomainException) {
-                    throw new ValidationException(['message' => '用户积分余额不足，无法通过该广告。']);
+                    throw new ValidationException(['points' => '用户积分余额不足，无法通过该广告。']);
                 }
 
                 $ad->point_transaction_id = (int) $tx->id;
@@ -132,13 +178,20 @@ class AdRepository
 
             $start = $ad->starts_at ?: Carbon::now();
             $ad->starts_at = $start;
-            $ad->ends_at = $start->copy()->addDays(max(1, (int) $ad->duration_days));
+            $ad->ends_at = $start->copy()->addDays($this->durationDaysForAd($ad));
             $ad->is_visible = true;
 
             return;
         }
 
         $ad->is_visible = false;
+    }
+
+    protected function assertSufficientBalance(User $user, int $required): void
+    {
+        if ($required > 0 && $this->balance($user) < $required) {
+            throw new ValidationException(['points' => '积分不足，需要赚取积分后再提交广告申请。']);
+        }
     }
 
     protected function normalizeSlotKey(mixed $value): string
@@ -152,15 +205,51 @@ class AdRepository
         return $slotKey;
     }
 
-    protected function normalizeDuration(mixed $value): int
+    protected function normalizeDurationPlan(mixed $value): string
     {
-        $days = (int) $value;
+        $key = (string) $value;
 
-        if ($days < $this->settings->minDurationDays() || $days > $this->settings->maxDurationDays()) {
-            throw new ValidationException(['durationDays' => sprintf('购买天数必须在 %d 到 %d 天之间。', $this->settings->minDurationDays(), $this->settings->maxDurationDays())]);
+        if (array_key_exists($key, AdvertisingSettings::DURATION_PLANS)) {
+            return $key;
         }
 
-        return $days;
+        $days = (int) $value;
+        foreach (AdvertisingSettings::DURATION_PLANS as $planKey => $plan) {
+            if ($days === (int) $plan['days']) {
+                return $planKey;
+            }
+        }
+
+        throw new ValidationException(['durationPlan' => '请选择有效的展示时长。']);
+    }
+
+    protected function monthsForDays(int $days): int
+    {
+        foreach (AdvertisingSettings::DURATION_PLANS as $plan) {
+            if ($days === (int) $plan['days']) {
+                return (int) $plan['months'];
+            }
+        }
+
+        return max(1, (int) ceil($days / 30));
+    }
+
+    protected function monthsForAd(Ad $ad): int
+    {
+        if ($ad->duration_plan && array_key_exists($ad->duration_plan, AdvertisingSettings::DURATION_PLANS)) {
+            return (int) AdvertisingSettings::DURATION_PLANS[$ad->duration_plan]['months'];
+        }
+
+        return $this->monthsForDays((int) $ad->duration_days);
+    }
+
+    protected function durationDaysForAd(Ad $ad): int
+    {
+        if ($ad->duration_plan && array_key_exists($ad->duration_plan, AdvertisingSettings::DURATION_PLANS)) {
+            return (int) AdvertisingSettings::DURATION_PLANS[$ad->duration_plan]['days'];
+        }
+
+        return max(1, (int) $ad->duration_days);
     }
 
     protected function normalizeTitle(mixed $value): string

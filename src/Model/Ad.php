@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $image_path
  * @property string $target_url
  * @property int $duration_days
+ * @property string|null $duration_plan
  * @property int $price_per_day
  * @property int $total_price
  * @property int|null $point_transaction_id
@@ -36,6 +37,7 @@ class Ad extends AbstractModel
 
     protected $casts = [
         'duration_days' => 'integer',
+        'duration_plan' => 'string',
         'price_per_day' => 'integer',
         'total_price' => 'integer',
         'point_transaction_id' => 'integer',

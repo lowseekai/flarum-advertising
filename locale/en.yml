@@ -2,25 +2,22 @@ lowseekai-advertising:
   error: "Something went wrong. Please try again."
   admin:
     title: "Advertising"
-    help: "Configure advertising slots and review user submissions."
+    help: "Configure monthly slot prices and review user submissions."
     enabled: "Enable advertising purchases"
-    sidebar_price: "Sidebar price per day"
-    top_price: "Top slot price per day"
-    min_days: "Minimum campaign days"
-    max_days: "Maximum campaign days"
+    sidebar_price: "Sidebar slot monthly price"
+    top_price: "Top slot monthly price"
     max_image_size: "Maximum image size (KB)"
-    currency_name: "Currency name"
-    currency_icon: "Currency icon class"
-    pending_title: "Pending submissions"
-    refresh: "Refresh"
-    empty: "No pending advertising submissions."
+    currency_name: "Points name"
+    currency_icon: "Points icon class"
+    pending_title: "Pending advertisements"
+    empty: "No pending advertisements."
     review_note: "Review note"
     approve: "Approve and charge points"
     reject: "Reject"
     save: "Save settings"
     saved: "Advertising settings saved."
-    approved: "Advertising approved and points charged."
-    rejected: "Advertising rejected."
+    approved: "Advertisement approved and points charged."
+    rejected: "Advertisement rejected."
     permissions:
       submit: "Submit advertising campaigns"
       manage: "Manage and review advertising campaigns"
@@ -28,20 +25,27 @@ lowseekai-advertising:
     title: "Advertising"
     nav: "Advertising"
     active_ads: "Active advertisements"
-    refresh: "Refresh"
     no_ads: "No active advertisements."
     no_permission: "You do not have permission to submit an advertisement."
     apply_title: "Buy an advertising slot"
     apply_help: "Submissions are reviewed before display. Points are charged only after approval."
     slot: "Advertising slot"
-    sidebar: "Sidebar"
-    top: "Top"
+    sidebar: "Sidebar slot"
+    top: "Top slot"
     title_label: "Advertisement title"
     url: "Destination URL"
     image: "Advertisement image"
+    choose_file: "Choose file"
+    no_file: "No file selected"
+    remove_file: "Remove image"
     uploaded: "Image uploaded."
-    duration: "Duration (days)"
-    price_help: "The final price is configured by the administrator. Currency: {currency}."
+    duration: "Duration"
+    one_month: "1 month"
+    three_months: "3 months"
+    six_months: "6 months"
+    one_year: "1 year"
+    price_help: "Estimated cost: {price} {currency}. Current balance: {balance} {currency}."
+    insufficient_points: "Insufficient points. Earn more points before submitting an advertising application."
     submit: "Submit for review"
     upload_success: "Image uploaded."
     image_required: "Please upload an advertisement image first."
@@ -52,3 +56,28 @@ lowseekai-advertising:
     status_approved: "Approved"
     status_rejected: "Rejected"
     status_expired: "Expired"
+    notification_pending_label: "Advertising applications"
+    notification_reviewed_label: "Advertising review results"
+    notification_pending: "User {user} submitted an advertisement: {title}. Estimated cost: {price} points."
+    notification_approved: "Your advertisement “{title}” was approved and {price} points were charged."
+    notification_rejected: "Your advertisement “{title}” was rejected."
+    notification_rejected_with_note: "Your advertisement “{title}” was rejected. Note: {note}"
+  email:
+    pending_review:
+      subject: "New advertising application: {title}"
+      body: |
+        User {user} submitted a new advertising application.
+
+        Advertisement: {title}
+        Slot: {slot}
+        Estimated cost: {price} points
+
+        Please sign in to the administration panel to review it.
+    reviewed:
+      approved_subject: "Advertising application approved: {title}"
+      rejected_subject: "Advertising application rejected: {title}"
+      approved_body: |
+        Your advertisement “{title}” was approved and {price} points were charged.
+      rejected_body: |
+        Your advertisement “{title}” was rejected.
+        Review note: {note}

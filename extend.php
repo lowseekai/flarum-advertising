@@ -18,6 +18,10 @@ use Lowseekai\Advertising\Api\Controller\SaveAdminConfigController;
 use Lowseekai\Advertising\Api\Controller\UpdateAdminAdController;
 use Lowseekai\Advertising\Api\Controller\UploadImageController;
 use Lowseekai\Advertising\Console\ExpireAdsCommand;
+use Lowseekai\Advertising\Notification\AdPendingReviewBlueprint;
+use Lowseekai\Advertising\Notification\AdReviewedBlueprint;
+use Lowseekai\Advertising\Support\AdvertisingSettings;
+use Ramon\PointSystem\Repository\PointsRepository;
 
 return [
     (new Extend\Frontend('forum'))
@@ -30,6 +34,13 @@ return [
         ->css(__DIR__.'/less/admin.less'),
 
     new Extend\Locales(__DIR__.'/locale'),
+
+    (new Extend\View())
+        ->namespace('lowseekai-advertising', __DIR__.'/views'),
+
+    (new Extend\Notification())
+        ->type(AdPendingReviewBlueprint::class, ['alert', 'email'])
+        ->type(AdReviewedBlueprint::class, ['alert', 'email']),
 
     (new Extend\Routes('api'))
         ->get('/advertising/public/ads', 'lowseekai-advertising.public.ads', ListPublicAdsController::class)
@@ -49,11 +60,25 @@ return [
             Schema\Boolean::make('lowseekaiAdvertisingCanManage')
                 ->get(fn ($forum, Context $context) => $context->getActor()->hasPermission('lowseekai-advertising.manage')),
             Schema\Boolean::make('lowseekaiAdvertisingEnabled')
-                ->get(fn () => resolve(Support\AdvertisingSettings::class)->enabled()),
+                ->get(fn () => resolve(AdvertisingSettings::class)->enabled()),
             Schema\Str::make('lowseekaiAdvertisingCurrencyName')
-                ->get(fn () => resolve(Support\AdvertisingSettings::class)->currencyName()),
+                ->get(fn () => resolve(AdvertisingSettings::class)->currencyName()),
             Schema\Str::make('lowseekaiAdvertisingCurrencyIcon')
-                ->get(fn () => resolve(Support\AdvertisingSettings::class)->currencyIcon()),
+                ->get(fn () => resolve(AdvertisingSettings::class)->currencyIcon()),
+            Schema\Integer::make('lowseekaiAdvertisingPointBalance')
+                ->get(function ($forum, Context $context) {
+                    if ($context->getActor()->isGuest()) {
+                        return 0;
+                    }
+
+                    return (int) resolve(PointsRepository::class)->getOrCreate($context->getActor())->balance;
+                }),
+            Schema\Integer::make('lowseekaiAdvertisingSidebarPricePerMonth')
+                ->get(fn () => resolve(AdvertisingSettings::class)->pricePerMonth('sidebar')),
+            Schema\Integer::make('lowseekaiAdvertisingTopPricePerMonth')
+                ->get(fn () => resolve(AdvertisingSettings::class)->pricePerMonth('top')),
+            Schema\Arr::make('lowseekaiAdvertisingDurationPlans')
+                ->get(fn () => resolve(AdvertisingSettings::class)->durationPlans()),
         ]),
 
     (new Extend\Console())
@@ -64,10 +89,8 @@ return [
 
     (new Extend\Settings())
         ->default('lowseekai-advertising.enabled', true)
-        ->default('lowseekai-advertising.sidebar_price_per_day', 20)
-        ->default('lowseekai-advertising.top_price_per_day', 30)
-        ->default('lowseekai-advertising.min_duration_days', 1)
-        ->default('lowseekai-advertising.max_duration_days', 30)
+        ->default('lowseekai-advertising.sidebar_price_per_month', 20)
+        ->default('lowseekai-advertising.top_price_per_month', 30)
         ->default('lowseekai-advertising.max_image_size_kb', 2048)
         ->default('lowseekai-advertising.currency_name', '积分')
         ->default('lowseekai-advertising.currency_icon', 'fas fa-coins'),

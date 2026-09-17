@@ -8,17 +8,15 @@ import type Mithril from 'mithril';
 
 declare const m: Mithril.Static;
 
+type DurationPlan = { key: string; label: string; months: number; days: number };
 type AdRecord = {
   id: number;
   title: string;
   imageUrl: string;
   targetUrl: string;
   slotLabel: string;
-  durationDays: number;
+  durationLabel: string;
   totalPrice: number;
-  status: string;
-  isVisible: boolean;
-  endsAt?: string;
   reviewNote?: string | null;
   user?: { displayName?: string; username?: string };
 };
@@ -29,21 +27,27 @@ class AdvertisingSettingsPage extends ExtensionPage {
   private savingAd: number | null = null;
   private savingConfig = false;
   private configLoaded = false;
+  private refreshTimer: number | null = null;
   private config = {
     enabled: true,
-    sidebarPricePerDay: 20,
-    topPricePerDay: 30,
-    minDurationDays: 1,
-    maxDurationDays: 30,
+    sidebarPricePerMonth: 20,
+    topPricePerMonth: 30,
     maxImageSizeKb: 2048,
     currencyName: '积分',
     currencyIcon: 'fas fa-coins',
+    durationPlans: [] as DurationPlan[],
   };
 
   oninit(vnode: Mithril.Vnode) {
     super.oninit(vnode);
     this.loadConfig();
     this.loadAds();
+    this.refreshTimer = window.setInterval(() => this.loadAds(), 30000);
+  }
+
+  onremove() {
+    if (this.refreshTimer !== null) window.clearInterval(this.refreshTimer);
+    this.refreshTimer = null;
   }
 
   apiUrl(path: string) {
@@ -63,8 +67,8 @@ class AdvertisingSettingsPage extends ExtensionPage {
   }
 
   async loadAds() {
+    if (this.loadingAds && this.ads.length) return;
     this.loadingAds = true;
-
     try {
       const response: any = await app.request({ method: 'GET', url: this.apiUrl('/advertising/admin/ads?status=pending') });
       this.ads = Array.isArray(response.data) ? response.data : [];
@@ -86,22 +90,8 @@ class AdvertisingSettingsPage extends ExtensionPage {
           <div className="LowseekaiAdvertisingAdmin-review">
             <div className="LowseekaiAdvertisingAdmin-heading">
               <h3>{app.translator.trans('lowseekai-advertising.admin.pending_title')}</h3>
-              <Button
-                className="Button--icon"
-                icon="fas fa-sync"
-                aria-label={app.translator.trans('lowseekai-advertising.admin.refresh')}
-                title={app.translator.trans('lowseekai-advertising.admin.refresh')}
-                onclick={() => this.loadAds()}
-                loading={this.loadingAds}
-              />
             </div>
-            {this.loadingAds ? (
-              <LoadingIndicator />
-            ) : this.ads.length ? (
-              this.ads.map((ad) => this.adRow(ad))
-            ) : (
-              <p className="helpText">{app.translator.trans('lowseekai-advertising.admin.empty')}</p>
-            )}
+            {this.loadingAds ? <LoadingIndicator /> : this.ads.length ? this.ads.map((ad) => this.adRow(ad)) : <p className="helpText">{app.translator.trans('lowseekai-advertising.admin.empty')}</p>}
           </div>
         </div>
       </div>
@@ -116,10 +106,8 @@ class AdvertisingSettingsPage extends ExtensionPage {
             {app.translator.trans('lowseekai-advertising.admin.enabled')}
           </Switch>
         </div>
-        {this.numberField('sidebarPricePerDay', 'lowseekai-advertising.admin.sidebar_price')}
-        {this.numberField('topPricePerDay', 'lowseekai-advertising.admin.top_price')}
-        {this.numberField('minDurationDays', 'lowseekai-advertising.admin.min_days')}
-        {this.numberField('maxDurationDays', 'lowseekai-advertising.admin.max_days')}
+        {this.numberField('sidebarPricePerMonth', 'lowseekai-advertising.admin.sidebar_price')}
+        {this.numberField('topPricePerMonth', 'lowseekai-advertising.admin.top_price')}
         {this.numberField('maxImageSizeKb', 'lowseekai-advertising.admin.max_image_size')}
         <div className="Form-group">
           <label>{app.translator.trans('lowseekai-advertising.admin.currency_name')}</label>
@@ -130,14 +118,7 @@ class AdvertisingSettingsPage extends ExtensionPage {
           <input className="FormControl" value={this.config.currencyIcon} oninput={(event: any) => (this.config.currencyIcon = event.target.value)} />
         </div>
         <div className="Form-group Form-controls">
-          <Button
-            type="button"
-            className="Button Button--primary"
-            icon="fas fa-save"
-            loading={this.savingConfig}
-            disabled={this.savingConfig}
-            onclick={() => this.saveConfig()}
-          >
+          <Button type="button" className="Button Button--primary" icon="fas fa-save" loading={this.savingConfig} disabled={this.savingConfig} onclick={() => this.saveConfig()}>
             {app.translator.trans('lowseekai-advertising.admin.save')}
           </Button>
         </div>
@@ -145,58 +126,30 @@ class AdvertisingSettingsPage extends ExtensionPage {
     );
   }
 
-  numberField(key: keyof typeof this.config, labelKey: string) {
+  numberField(key: 'sidebarPricePerMonth' | 'topPricePerMonth' | 'maxImageSizeKb', labelKey: string) {
     return (
       <div className="Form-group">
         <label>{app.translator.trans(labelKey)}</label>
-        <input
-          type="number"
-          min="0"
-          className="FormControl"
-          value={this.config[key]}
-          oninput={(event: any) => (this.config[key] = Number(event.target.value) as never)}
-        />
+        <input type="number" min="0" className="FormControl" value={this.config[key]} oninput={(event: any) => (this.config[key] = Number(event.target.value))} />
       </div>
     );
   }
 
   adRow(ad: AdRecord) {
     const busy = this.savingAd === ad.id;
-
     return (
       <div className="LowseekaiAdvertisingAdmin-ad" key={ad.id}>
         <img src={ad.imageUrl} alt={ad.title} />
         <div className="LowseekaiAdvertisingAdmin-adBody">
           <strong>{ad.title}</strong>
-          <span>
-            {ad.user?.displayName || ad.user?.username || '-'} · {ad.slotLabel} · {ad.durationDays} 天 · {ad.totalPrice} {this.config.currencyName}
-          </span>
-          <a href={ad.targetUrl} target="_blank" rel="noopener noreferrer">
-            {ad.targetUrl}
-          </a>
-          <textarea
-            className="FormControl"
-            placeholder={app.translator.trans('lowseekai-advertising.admin.review_note')}
-            value={ad.reviewNote || ''}
-            oninput={(event: any) => (ad.reviewNote = event.target.value)}
-          />
+          <span>{ad.user?.displayName || ad.user?.username || '-'} · {ad.slotLabel} · {ad.durationLabel} · {ad.totalPrice} {this.config.currencyName}</span>
+          <a href={ad.targetUrl} target="_blank" rel="noopener noreferrer">{ad.targetUrl}</a>
+          <textarea className="FormControl" placeholder={app.translator.trans('lowseekai-advertising.admin.review_note')} value={ad.reviewNote || ''} oninput={(event: any) => (ad.reviewNote = event.target.value)} />
           <div className="LowseekaiAdvertisingAdmin-actions">
-            <Button
-              className="Button Button--primary"
-              icon="fas fa-check"
-              loading={busy}
-              disabled={busy}
-              onclick={() => this.updateAd(ad, 'approved')}
-            >
+            <Button className="Button Button--primary" icon="fas fa-check" loading={busy} disabled={busy} onclick={() => this.updateAd(ad, 'approved')}>
               {app.translator.trans('lowseekai-advertising.admin.approve')}
             </Button>
-            <Button
-              className="Button Button--danger"
-              icon="fas fa-times"
-              loading={busy}
-              disabled={busy}
-              onclick={() => this.updateAd(ad, 'rejected')}
-            >
+            <Button className="Button Button--danger" icon="fas fa-times" loading={busy} disabled={busy} onclick={() => this.updateAd(ad, 'rejected')}>
               {app.translator.trans('lowseekai-advertising.admin.reject')}
             </Button>
           </div>
@@ -207,7 +160,6 @@ class AdvertisingSettingsPage extends ExtensionPage {
 
   async saveConfig() {
     this.savingConfig = true;
-
     try {
       const response: any = await app.request({
         method: 'POST',
@@ -226,7 +178,6 @@ class AdvertisingSettingsPage extends ExtensionPage {
 
   async updateAd(ad: AdRecord, status: string) {
     this.savingAd = ad.id;
-
     try {
       await app.request({
         method: 'PATCH',
@@ -244,7 +195,7 @@ class AdvertisingSettingsPage extends ExtensionPage {
   }
 
   errorMessage(error: any) {
-    return error?.response?.errors?.[0]?.detail || app.translator.trans('lowseekai-advertising.error');
+    return error?.response?.errors?.[0]?.detail || error?.response?.errors?.[0]?.title || app.translator.trans('lowseekai-advertising.error');
   }
 }
 
@@ -253,21 +204,11 @@ app.initializers.add('lowseekai/advertising/admin', () => {
     .for('lowseekai-advertising')
     .registerPage(AdvertisingSettingsPage)
     .registerPermission(
-      {
-        icon: 'fas fa-bullhorn',
-        label: app.translator.trans('lowseekai-advertising.admin.permissions.submit'),
-        permission: 'lowseekai-advertising.submit',
-        allowGuest: false,
-      },
+      { icon: 'fas fa-bullhorn', label: app.translator.trans('lowseekai-advertising.admin.permissions.submit'), permission: 'lowseekai-advertising.submit', allowGuest: false },
       'view'
     )
     .registerPermission(
-      {
-        icon: 'fas fa-gavel',
-        label: app.translator.trans('lowseekai-advertising.admin.permissions.manage'),
-        permission: 'lowseekai-advertising.manage',
-        allowGuest: false,
-      },
+      { icon: 'fas fa-gavel', label: app.translator.trans('lowseekai-advertising.admin.permissions.manage'), permission: 'lowseekai-advertising.manage', allowGuest: false },
       'moderate'
     );
 });

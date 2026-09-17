@@ -4,6 +4,7 @@ import Page from 'flarum/common/components/Page';
 import Component from 'flarum/common/Component';
 import Button from 'flarum/common/components/Button';
 import LinkButton from 'flarum/common/components/LinkButton';
+import Notification from 'flarum/forum/components/Notification';
 import IndexSidebar from 'flarum/forum/components/IndexSidebar';
 import PageStructure from 'flarum/forum/components/PageStructure';
 import IndexPage from 'flarum/forum/components/IndexPage';
@@ -12,6 +13,7 @@ import type Mithril from 'mithril';
 
 declare const m: Mithril.Static;
 
+type DurationPlan = { key: string; label: string; months: number; days: number };
 type AdRecord = {
   id: number;
   slotKey: string;
@@ -19,14 +21,25 @@ type AdRecord = {
   title: string;
   imageUrl: string;
   targetUrl: string;
-  durationDays: number;
-  pricePerDay: number;
+  durationLabel: string;
   totalPrice: number;
   status: string;
-  isVisible: boolean;
-  endsAt?: string;
   reviewNote?: string | null;
 };
+
+type AdvertisingNotificationData = {
+  title?: string;
+  totalPrice?: number;
+  status?: string;
+  reviewNote?: string | null;
+};
+
+const DEFAULT_PLANS: DurationPlan[] = [
+  { key: '1_month', label: '1 个月', months: 1, days: 30 },
+  { key: '3_months', label: '3 个月', months: 3, days: 90 },
+  { key: '6_months', label: '半年', months: 6, days: 180 },
+  { key: '1_year', label: '一年', months: 12, days: 365 },
+];
 
 class AdCard extends Component<{ ad: AdRecord }> {
   view() {
@@ -40,6 +53,59 @@ class AdCard extends Component<{ ad: AdRecord }> {
   }
 }
 
+class AdPendingReviewNotification extends Notification {
+  icon() {
+    return 'fas fa-bullhorn';
+  }
+
+  href() {
+    return app.route('lowseekai-advertising.index');
+  }
+
+  content() {
+    const data = this.attrs.notification.content<AdvertisingNotificationData>() || {};
+    return app.translator.trans('lowseekai-advertising.forum.notification_pending', {
+      user: this.attrs.notification.fromUser(),
+      title: data.title || '',
+      price: data.totalPrice || 0,
+    });
+  }
+
+  excerpt() {
+    return null;
+  }
+}
+
+class AdReviewedNotification extends Notification {
+  icon() {
+    const data = this.attrs.notification.content<AdvertisingNotificationData>() || {};
+    return data.status === 'approved' ? 'fas fa-check-circle' : 'fas fa-gavel';
+  }
+
+  href() {
+    return app.route('lowseekai-advertising.index');
+  }
+
+  content() {
+    const data = this.attrs.notification.content<AdvertisingNotificationData>() || {};
+    const key = data.status === 'approved'
+      ? 'lowseekai-advertising.forum.notification_approved'
+      : data.reviewNote
+        ? 'lowseekai-advertising.forum.notification_rejected_with_note'
+        : 'lowseekai-advertising.forum.notification_rejected';
+
+    return app.translator.trans(key, {
+      title: data.title || '',
+      price: data.totalPrice || 0,
+      note: data.reviewNote || '',
+    });
+  }
+
+  excerpt() {
+    return null;
+  }
+}
+
 class AdvertisingPage extends Page {
   private ads: AdRecord[] = [];
   private myAds: AdRecord[] = [];
@@ -48,15 +114,44 @@ class AdvertisingPage extends Page {
   private uploadedPath = '';
   private uploadedFileName = '';
   private fileInput: HTMLInputElement | null = null;
-  private form = { slotKey: 'sidebar', title: '', targetUrl: '', durationDays: 7 };
+  private refreshTimer: number | null = null;
+  private form = { slotKey: 'sidebar', title: '', targetUrl: '', durationPlan: '1_month' };
 
   oninit(vnode: Mithril.Vnode) {
     super.oninit(vnode);
     this.load();
+    this.refreshTimer = window.setInterval(() => this.load(), 30000);
+  }
+
+  onremove() {
+    if (this.refreshTimer !== null) window.clearInterval(this.refreshTimer);
+    this.refreshTimer = null;
   }
 
   apiUrl(path: string) {
     return `${app.forum.attribute('apiUrl')}${path}`;
+  }
+
+  plans(): DurationPlan[] {
+    const plans = app.forum.attribute('lowseekaiAdvertisingDurationPlans') as DurationPlan[] | undefined;
+    return Array.isArray(plans) && plans.length ? plans : DEFAULT_PLANS;
+  }
+
+  selectedPlan(): DurationPlan {
+    return this.plans().find((plan) => plan.key === this.form.durationPlan) || this.plans()[0];
+  }
+
+  pricePerMonth(): number {
+    const key = this.form.slotKey === 'top' ? 'lowseekaiAdvertisingTopPricePerMonth' : 'lowseekaiAdvertisingSidebarPricePerMonth';
+    return Number(app.forum.attribute(key) || 0);
+  }
+
+  totalPrice(): number {
+    return this.pricePerMonth() * this.selectedPlan().months;
+  }
+
+  pointBalance(): number {
+    return Number(app.forum.attribute('lowseekaiAdvertisingPointBalance') || 0);
   }
 
   async load() {
@@ -95,37 +190,26 @@ class AdvertisingPage extends Page {
 
   content() {
     if (this.loading) return <LoadingIndicator />;
-    return [
+    return (
       <div className="container">
         <section className="LowseekaiAdvertising-list">
           <div className="LowseekaiAdvertising-sectionHeading">
             <h2>{app.translator.trans('lowseekai-advertising.forum.active_ads')}</h2>
-            <Button
-              className="Button--icon"
-              icon="fas fa-sync"
-              aria-label={app.translator.trans('lowseekai-advertising.forum.refresh')}
-              title={app.translator.trans('lowseekai-advertising.forum.refresh')}
-              onclick={() => this.load()}
-            />
           </div>
-          {this.ads.length ? (
-            this.ads.map((ad) => <AdCard ad={ad} key={ad.id} />)
-          ) : (
-            <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.no_ads')}</p>
-          )}
+          {this.ads.length ? this.ads.map((ad) => <AdCard ad={ad} key={ad.id} />) : <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.no_ads')}</p>}
         </section>
-        {app.forum.attribute('lowseekaiAdvertisingCanSubmit') ? (
-          this.applyForm()
-        ) : (
-          <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.no_permission')}</p>
-        )}
+        {app.forum.attribute('lowseekaiAdvertisingCanSubmit') ? this.applyForm() : <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.no_permission')}</p>}
         {app.session.user ? this.myAdsView() : null}
-      </div>,
-    ];
+      </div>
+    );
   }
 
   applyForm() {
     const currency = app.forum.attribute('lowseekaiAdvertisingCurrencyName') || '积分';
+    const balance = this.pointBalance();
+    const total = this.totalPrice();
+    const insufficient = total > balance;
+
     return (
       <section className="LowseekaiAdvertising-apply">
         <h2>{app.translator.trans('lowseekai-advertising.forum.apply_title')}</h2>
@@ -143,13 +227,7 @@ class AdvertisingPage extends Page {
         </div>
         <div className="Form-group">
           <label>{app.translator.trans('lowseekai-advertising.forum.url')}</label>
-          <input
-            className="FormControl"
-            type="url"
-            value={this.form.targetUrl}
-            oninput={(event: any) => (this.form.targetUrl = event.target.value)}
-            placeholder="https://"
-          />
+          <input className="FormControl" type="url" value={this.form.targetUrl} oninput={(event: any) => (this.form.targetUrl = event.target.value)} placeholder="https://" />
         </div>
         <div className="Form-group">
           <label>{app.translator.trans('lowseekai-advertising.forum.image')}</label>
@@ -164,9 +242,7 @@ class AdvertisingPage extends Page {
             <Button type="button" className="Button Button--secondary" icon="fas fa-image" onclick={() => this.fileInput?.click()}>
               {app.translator.trans('lowseekai-advertising.forum.choose_file')}
             </Button>
-            <span className="LowseekaiAdvertising-fileName">
-              {this.uploadedFileName || app.translator.trans('lowseekai-advertising.forum.no_file')}
-            </span>
+            <span className="LowseekaiAdvertising-fileName">{this.uploadedFileName || app.translator.trans('lowseekai-advertising.forum.no_file')}</span>
             {this.uploadedPath ? (
               <Button
                 type="button"
@@ -178,24 +254,22 @@ class AdvertisingPage extends Page {
               />
             ) : null}
           </div>
-          {this.uploadedPath ? <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.uploaded')}</p> : null}
         </div>
         <div className="Form-group">
           <label>{app.translator.trans('lowseekai-advertising.forum.duration')}</label>
-          <input
-            className="FormControl"
-            type="number"
-            min="1"
-            value={this.form.durationDays}
-            oninput={(event: any) => (this.form.durationDays = Number(event.target.value))}
-          />
-          <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.price_help', { currency })}</p>
+          <select className="FormControl" value={this.form.durationPlan} onchange={(event: any) => (this.form.durationPlan = event.target.value)}>
+            {this.plans().map((plan) => <option value={plan.key}>{plan.label}</option>)}
+          </select>
+          <p className="helpText">
+            {app.translator.trans('lowseekai-advertising.forum.price_help', { price: total, balance, currency })}
+          </p>
+          {insufficient ? <p className="helpText LowseekaiAdvertising-insufficient">{app.translator.trans('lowseekai-advertising.forum.insufficient_points')}</p> : null}
         </div>
         <Button
           className="Button Button--primary"
           icon="fas fa-paper-plane"
           loading={this.submitting}
-          disabled={this.submitting}
+          disabled={this.submitting || insufficient}
           onclick={() => this.submit()}
         >
           {app.translator.trans('lowseekai-advertising.forum.submit')}
@@ -208,22 +282,15 @@ class AdvertisingPage extends Page {
     return (
       <section className="LowseekaiAdvertising-my">
         <h2>{app.translator.trans('lowseekai-advertising.forum.my_ads')}</h2>
-        {this.myAds.length ? (
-          this.myAds.map((ad) => (
-            <div className="LowseekaiAdvertising-myRow" key={ad.id}>
-              <img src={ad.imageUrl} alt={ad.title} />
-              <div>
-                <strong>{ad.title}</strong>
-                <span>
-                  {this.statusLabel(ad.status)}
-                  {ad.reviewNote ? ` · ${ad.reviewNote}` : ''}
-                </span>
-              </div>
+        {this.myAds.length ? this.myAds.map((ad) => (
+          <div className="LowseekaiAdvertising-myRow" key={ad.id}>
+            <img src={ad.imageUrl} alt={ad.title} />
+            <div>
+              <strong>{ad.title}</strong>
+              <span>{this.statusLabel(ad.status)}{ad.reviewNote ? ` · ${ad.reviewNote}` : ''}</span>
             </div>
-          ))
-        ) : (
-          <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.no_my_ads')}</p>
-        )}
+          </div>
+        )) : <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.no_my_ads')}</p>}
       </section>
     );
   }
@@ -246,15 +313,16 @@ class AdvertisingPage extends Page {
   clearUploadedFile() {
     this.uploadedPath = '';
     this.uploadedFileName = '';
-
-    if (this.fileInput) {
-      this.fileInput.value = '';
-    }
-
+    if (this.fileInput) this.fileInput.value = '';
     m.redraw();
   }
 
   async submit() {
+    const total = this.totalPrice();
+    if (total > this.pointBalance()) {
+      app.alerts.show({ type: 'error' }, app.translator.trans('lowseekai-advertising.forum.insufficient_points'));
+      return;
+    }
     if (!this.uploadedPath) {
       app.alerts.show({ type: 'error' }, app.translator.trans('lowseekai-advertising.forum.image_required'));
       return;
@@ -267,7 +335,7 @@ class AdvertisingPage extends Page {
         body: { data: { attributes: { ...this.form, imagePath: this.uploadedPath } } },
       });
       app.alerts.show({ type: 'success' }, app.translator.trans('lowseekai-advertising.forum.pending_success'));
-      this.form = { slotKey: 'sidebar', title: '', targetUrl: '', durationDays: 7 };
+      this.form = { slotKey: 'sidebar', title: '', targetUrl: '', durationPlan: '1_month' };
       this.uploadedPath = '';
       this.uploadedFileName = '';
       if (this.fileInput) this.fileInput.value = '';
@@ -286,7 +354,7 @@ class AdvertisingPage extends Page {
   }
 
   errorMessage(error: any) {
-    return error?.response?.errors?.[0]?.detail || app.translator.trans('lowseekai-advertising.error');
+    return error?.response?.errors?.[0]?.detail || error?.response?.errors?.[0]?.title || app.translator.trans('lowseekai-advertising.error');
   }
 }
 
@@ -310,13 +378,7 @@ class AdvertisingSidebar extends Component {
 
   view() {
     if (!this.loaded || !this.ads.length) return null;
-    return (
-      <div className="LowseekaiAdvertisingSidebar">
-        {this.ads.slice(0, 5).map((ad) => (
-          <AdCard ad={ad} key={ad.id} />
-        ))}
-      </div>
-    );
+    return <div className="LowseekaiAdvertisingSidebar">{this.ads.slice(0, 5).map((ad) => <AdCard ad={ad} key={ad.id} />)}</div>;
   }
 }
 
@@ -330,10 +392,7 @@ class AdvertisingTop extends Component {
 
   async load() {
     try {
-      const response: any = await app.request({
-        method: 'GET',
-        url: `${app.forum.attribute('apiUrl')}/advertising/public/ads?slot=top`,
-      });
+      const response: any = await app.request({ method: 'GET', url: `${app.forum.attribute('apiUrl')}/advertising/public/ads?slot=top` });
       this.ads = Array.isArray(response.data) ? response.data : [];
     } catch {
       this.ads = [];
@@ -345,34 +404,36 @@ class AdvertisingTop extends Component {
 
   view() {
     if (!this.loaded || !this.ads.length) return null;
-
-    return (
-      <div className="LowseekaiAdvertisingTop">
-        {this.ads.slice(0, 3).map((ad) => (
-          <AdCard ad={ad} key={ad.id} />
-        ))}
-      </div>
-    );
+    return <div className="LowseekaiAdvertisingTop">{this.ads.slice(0, 3).map((ad) => <AdCard ad={ad} key={ad.id} />)}</div>;
   }
 }
 
 app.initializers.add('lowseekai/advertising/forum', () => {
   app.routes['lowseekai-advertising.index'] = { path: '/advertising', component: AdvertisingPage };
+  app.notificationComponents.lowseekaiAdvertisingAdPendingReview = AdPendingReviewNotification;
+  app.notificationComponents.lowseekaiAdvertisingAdReviewed = AdReviewedNotification;
+
+  extend('flarum/forum/components/NotificationGrid', 'notificationTypes', (items: any) => {
+    items.add('lowseekaiAdvertisingAdPendingReview', {
+      name: 'lowseekaiAdvertisingAdPendingReview',
+      icon: 'fas fa-bullhorn',
+      label: app.translator.trans('lowseekai-advertising.forum.notification_pending_label'),
+    });
+    items.add('lowseekaiAdvertisingAdReviewed', {
+      name: 'lowseekaiAdvertisingAdReviewed',
+      icon: 'fas fa-gavel',
+      label: app.translator.trans('lowseekai-advertising.forum.notification_reviewed_label'),
+    });
+  });
 
   extend(IndexPage.prototype, 'contentItems', (items: any) => {
     items.add('lowseekai-advertising-top', <AdvertisingTop />, 105);
   });
-
   extend(IndexSidebar.prototype, 'navItems', (items: any) => {
-    items.add(
-      'lowseekai-advertising',
-      <LinkButton href={app.route('lowseekai-advertising.index')} icon="fas fa-bullhorn">
-        {app.translator.trans('lowseekai-advertising.forum.nav')}
-      </LinkButton>,
-      95
-    );
+    items.add('lowseekai-advertising', <LinkButton href={app.route('lowseekai-advertising.index')} icon="fas fa-bullhorn">
+      {app.translator.trans('lowseekai-advertising.forum.nav')}
+    </LinkButton>, 95);
   });
-
   extend(IndexSidebar.prototype, 'items', (items: any) => {
     items.add('lowseekai-advertising-sidebar', <AdvertisingSidebar />, -20);
   });

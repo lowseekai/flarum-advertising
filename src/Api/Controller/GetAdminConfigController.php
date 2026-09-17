@@ -30,10 +30,9 @@ class GetAdminConfigController implements RequestHandlerInterface
     {
         return [
             'enabled' => $this->settings->enabled(),
-            'sidebarPricePerDay' => $this->settings->pricePerDay('sidebar'),
-            'topPricePerDay' => $this->settings->pricePerDay('top'),
-            'minDurationDays' => $this->settings->minDurationDays(),
-            'maxDurationDays' => $this->settings->maxDurationDays(),
+            'sidebarPricePerMonth' => $this->settings->pricePerMonth('sidebar'),
+            'topPricePerMonth' => $this->settings->pricePerMonth('top'),
+            'durationPlans' => $this->settings->durationPlans(),
             'maxImageSizeKb' => $this->settings->maxImageSizeKb(),
             'currencyName' => $this->settings->currencyName(),
             'currencyIcon' => $this->settings->currencyIcon(),

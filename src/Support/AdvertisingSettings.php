@@ -9,10 +9,10 @@ use Flarum\Settings\SettingsRepositoryInterface;
 class AdvertisingSettings
 {
     public const KEY_ENABLED = 'lowseekai-advertising.enabled';
-    public const KEY_SIDEBAR_PRICE = 'lowseekai-advertising.sidebar_price_per_day';
-    public const KEY_TOP_PRICE = 'lowseekai-advertising.top_price_per_day';
-    public const KEY_MIN_DAYS = 'lowseekai-advertising.min_duration_days';
-    public const KEY_MAX_DAYS = 'lowseekai-advertising.max_duration_days';
+    public const KEY_SIDEBAR_PRICE = 'lowseekai-advertising.sidebar_price_per_month';
+    public const KEY_TOP_PRICE = 'lowseekai-advertising.top_price_per_month';
+    public const LEGACY_KEY_SIDEBAR_PRICE = 'lowseekai-advertising.sidebar_price_per_day';
+    public const LEGACY_KEY_TOP_PRICE = 'lowseekai-advertising.top_price_per_day';
     public const KEY_MAX_IMAGE_SIZE = 'lowseekai-advertising.max_image_size_kb';
     public const KEY_CURRENCY_NAME = 'lowseekai-advertising.currency_name';
     public const KEY_CURRENCY_ICON = 'lowseekai-advertising.currency_icon';
@@ -20,6 +20,29 @@ class AdvertisingSettings
     public const SLOT_LABELS = [
         'sidebar' => '侧栏广告位',
         'top' => '顶部广告位',
+    ];
+
+    public const DURATION_PLANS = [
+        '1_month' => [
+            'label' => '1 个月',
+            'months' => 1,
+            'days' => 30,
+        ],
+        '3_months' => [
+            'label' => '3 个月',
+            'months' => 3,
+            'days' => 90,
+        ],
+        '6_months' => [
+            'label' => '半年',
+            'months' => 6,
+            'days' => 180,
+        ],
+        '1_year' => [
+            'label' => '一年',
+            'months' => 12,
+            'days' => 365,
+        ],
     ];
 
     public function __construct(protected SettingsRepositoryInterface $settings)
@@ -31,27 +54,23 @@ class AdvertisingSettings
         return filter_var($this->settings->get(self::KEY_ENABLED, true), FILTER_VALIDATE_BOOLEAN);
     }
 
-    public function minDurationDays(): int
-    {
-        return max(1, min(365, (int) $this->settings->get(self::KEY_MIN_DAYS, 1)));
-    }
-
-    public function maxDurationDays(): int
-    {
-        return max($this->minDurationDays(), min(365, (int) $this->settings->get(self::KEY_MAX_DAYS, 30)));
-    }
-
     public function maxImageSizeKb(): int
     {
         return max(128, min(20480, (int) $this->settings->get(self::KEY_MAX_IMAGE_SIZE, 2048)));
     }
 
-    public function pricePerDay(string $slotKey): int
+    public function pricePerMonth(string $slotKey): int
     {
         return match ($slotKey) {
-            'top' => max(0, (int) $this->settings->get(self::KEY_TOP_PRICE, 30)),
-            default => max(0, (int) $this->settings->get(self::KEY_SIDEBAR_PRICE, 20)),
+            'top' => max(0, (int) $this->settingWithLegacyFallback(self::KEY_TOP_PRICE, self::LEGACY_KEY_TOP_PRICE, 30)),
+            default => max(0, (int) $this->settingWithLegacyFallback(self::KEY_SIDEBAR_PRICE, self::LEGACY_KEY_SIDEBAR_PRICE, 20)),
         };
+    }
+
+    // Compatibility alias for older request payloads and the historical DB column name.
+    public function pricePerDay(string $slotKey): int
+    {
+        return $this->pricePerMonth($slotKey);
     }
 
     public function currencyName(): string
@@ -73,7 +92,29 @@ class AdvertisingSettings
         return array_map(fn (string $key, string $label) => [
             'key' => $key,
             'label' => $label,
-            'pricePerDay' => $this->pricePerDay($key),
+            'pricePerMonth' => $this->pricePerMonth($key),
         ], array_keys(self::SLOT_LABELS), array_values(self::SLOT_LABELS));
+    }
+
+    public function durationPlans(): array
+    {
+        return array_map(fn (string $key, array $plan) => [
+            'key' => $key,
+            'label' => $plan['label'],
+            'months' => $plan['months'],
+            'days' => $plan['days'],
+        ], array_keys(self::DURATION_PLANS), array_values(self::DURATION_PLANS));
+    }
+
+    public function durationPlan(string $key): array
+    {
+        return self::DURATION_PLANS[$key] ?? self::DURATION_PLANS['1_month'];
+    }
+
+    protected function settingWithLegacyFallback(string $key, string $legacyKey, mixed $default): mixed
+    {
+        $value = $this->settings->get($key);
+
+        return $value !== null ? $value : $this->settings->get($legacyKey, $default);
     }
 }

@@ -2,17 +2,14 @@ lowseekai-advertising:
   error: "操作失败，请稍后重试。"
   admin:
     title: "广告管理"
-    help: "配置广告位价格并审核用户提交的广告。"
-    enabled: "开启广告位购买"
-    sidebar_price: "侧栏广告位每日价格"
-    top_price: "顶部广告位每日价格"
-    min_days: "最少购买天数"
-    max_days: "最多购买天数"
+    help: "配置广告位月价格，并审核用户提交的广告。"
+    enabled: "开放广告位购买"
+    sidebar_price: "侧栏广告位每月价格"
+    top_price: "顶部广告位每月价格"
     max_image_size: "图片大小上限（KB）"
     currency_name: "积分名称"
     currency_icon: "积分图标 class"
     pending_title: "待审核广告"
-    refresh: "刷新"
     empty: "暂无待审核广告。"
     review_note: "审核备注"
     approve: "通过并扣除积分"
@@ -28,7 +25,6 @@ lowseekai-advertising:
     title: "广告中心"
     nav: "广告中心"
     active_ads: "正在展示的广告"
-    refresh: "刷新"
     no_ads: "暂无正在展示的广告。"
     no_permission: "你没有提交广告的权限。"
     apply_title: "购买广告位"
@@ -43,8 +39,13 @@ lowseekai-advertising:
     no_file: "未选择文件"
     remove_file: "移除图片"
     uploaded: "图片已上传。"
-    duration: "展示时长（天）"
-    price_help: "最终价格由管理员配置。积分类型：{currency}。"
+    duration: "展示时长"
+    one_month: "1 个月"
+    three_months: "3 个月"
+    six_months: "半年"
+    one_year: "一年"
+    price_help: "预计消耗 {price} {currency}，当前余额 {balance} {currency}。"
+    insufficient_points: "积分不足，需要赚取积分后再提交广告申请。"
     submit: "提交审核"
     upload_success: "图片上传成功。"
     image_required: "请先上传广告图片。"
@@ -55,3 +56,28 @@ lowseekai-advertising:
     status_approved: "已通过"
     status_rejected: "已拒绝"
     status_expired: "已过期"
+    notification_pending_label: "广告申请"
+    notification_reviewed_label: "广告审核结果"
+    notification_pending: "用户 {user} 提交了广告申请：{title}，预计消耗 {price} 积分。"
+    notification_approved: "你的广告“{title}”已通过审核，已扣除 {price} 积分。"
+    notification_rejected: "你的广告“{title}”未通过审核。"
+    notification_rejected_with_note: "你的广告“{title}”未通过审核。备注：{note}"
+  email:
+    pending_review:
+      subject: "新的广告申请：{title}"
+      body: |
+        用户 {user} 提交了一条新的广告申请。
+
+        广告标题：{title}
+        广告位：{slot}
+        预计消耗：{price} 积分
+
+        请登录论坛后台进行审核。
+    reviewed:
+      approved_subject: "广告申请已通过：{title}"
+      rejected_subject: "广告申请未通过：{title}"
+      approved_body: |
+        你的广告“{title}”已通过审核，已扣除 {price} 积分。
+      rejected_body: |
+        你的广告“{title}”未通过审核。
+        审核备注：{note}
