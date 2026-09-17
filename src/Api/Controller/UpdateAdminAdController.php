@@ -29,7 +29,9 @@ class UpdateAdminAdController implements RequestHandlerInterface
             throw new PermissionDeniedException();
         }
 
-        $id = (int) $request->getAttribute('id');
+        // Flarum 2 stores FastRoute parameters in `routeParameters`; they are
+        // not copied to individual request attributes.
+        $id = (int) Arr::get($request->getAttribute('routeParameters'), 'id');
         $ad = Ad::query()->findOrFail($id);
         $attributes = (array) Arr::get($request->getParsedBody(), 'data.attributes', []);
         $ad = $this->ads->updateByAdmin($actor, $ad, $attributes);

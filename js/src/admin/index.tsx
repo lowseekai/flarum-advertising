@@ -195,7 +195,23 @@ class AdvertisingSettingsPage extends ExtensionPage {
   }
 
   errorMessage(error: any) {
-    return error?.response?.errors?.[0]?.detail || error?.response?.errors?.[0]?.title || app.translator.trans('lowseekai-advertising.error');
+    const responseError = error?.response?.errors?.[0];
+    let responseBody = error?.responseText;
+
+    if (typeof responseBody === 'string') {
+      try {
+        responseBody = JSON.parse(responseBody);
+      } catch {
+        // Keep the generic localized message for non-JSON responses.
+      }
+    }
+
+    return responseError?.detail
+      || responseError?.title
+      || responseBody?.errors?.[0]?.detail
+      || responseBody?.errors?.[0]?.title
+      || error?.message
+      || app.translator.trans('lowseekai-advertising.error');
   }
 }
 
