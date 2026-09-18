@@ -35,12 +35,13 @@ class SaveAdminConfigController implements RequestHandlerInterface
             AdvertisingSettings::KEY_SIDEBAR_ENABLED => filter_var($attrs['sidebarEnabled'] ?? true, FILTER_VALIDATE_BOOLEAN) ? '1' : '0',
             AdvertisingSettings::KEY_TOP_ENABLED => filter_var($attrs['topEnabled'] ?? true, FILTER_VALIDATE_BOOLEAN) ? '1' : '0',
             AdvertisingSettings::KEY_SIDEBAR_SLOTS => (string) max(1, min(50, (int) ($attrs['sidebarSlots'] ?? $this->advertising->slotCount('sidebar')))),
-            AdvertisingSettings::KEY_TOP_SLOTS => (string) max(1, min(12, (int) ($attrs['topSlots'] ?? $this->advertising->slotCount('top')))),
+            AdvertisingSettings::KEY_TOP_SLOTS => (string) AdvertisingSettings::TOP_SLOT_COUNT,
             AdvertisingSettings::KEY_SIDEBAR_PRICE => (string) max(0, (int) ($attrs['sidebarPricePerMonth'] ?? $attrs['sidebarPricePerDay'] ?? $this->advertising->pricePerMonth('sidebar'))),
             AdvertisingSettings::KEY_TOP_PRICE => (string) max(0, (int) ($attrs['topPricePerMonth'] ?? $attrs['topPricePerDay'] ?? $this->advertising->pricePerMonth('top'))),
             AdvertisingSettings::KEY_MAX_IMAGE_SIZE => (string) max(128, min(20480, (int) ($attrs['maxImageSizeKb'] ?? $this->advertising->maxImageSizeKb()))),
             AdvertisingSettings::KEY_CURRENCY_NAME => mb_substr(trim((string) ($attrs['currencyName'] ?? $this->advertising->currencyName())), 0, 30) ?: '积分',
             AdvertisingSettings::KEY_CURRENCY_ICON => preg_match('/^[a-zA-Z0-9 _-]{1,80}$/', (string) ($attrs['currencyIcon'] ?? 'fas fa-coins')) ? (string) $attrs['currencyIcon'] : 'fas fa-coins',
+            AdvertisingSettings::KEY_RENEWAL_ENABLED => filter_var($attrs['renewalEnabled'] ?? true, FILTER_VALIDATE_BOOLEAN) ? '1' : '0',
         ];
 
         foreach ($values as $key => $value) {
@@ -59,6 +60,7 @@ class SaveAdminConfigController implements RequestHandlerInterface
             'maxImageSizeKb' => (int) $values[AdvertisingSettings::KEY_MAX_IMAGE_SIZE],
             'currencyName' => $values[AdvertisingSettings::KEY_CURRENCY_NAME],
             'currencyIcon' => $values[AdvertisingSettings::KEY_CURRENCY_ICON],
+            'renewalEnabled' => $values[AdvertisingSettings::KEY_RENEWAL_ENABLED] === '1',
         ]]);
     }
 }

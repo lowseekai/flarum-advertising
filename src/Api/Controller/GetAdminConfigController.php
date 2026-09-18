@@ -40,6 +40,7 @@ class GetAdminConfigController implements RequestHandlerInterface
             'maxImageSizeKb' => $this->settings->maxImageSizeKb(),
             'currencyName' => $this->settings->currencyName(),
             'currencyIcon' => $this->settings->currencyIcon(),
+            'renewalEnabled' => $this->settings->renewalEnabled(),
         ];
     }
 }

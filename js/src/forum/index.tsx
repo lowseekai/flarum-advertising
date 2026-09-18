@@ -33,8 +33,10 @@ type AdRecord = {
   targetUrl: string;
   durationLabel: string;
   totalPrice: number;
+  renewalPrice: number;
   status: string;
   reviewNote?: string | null;
+  startsAt?: string | null;
   endsAt?: string | null;
 };
 type AdvertisingNotificationData = {
@@ -47,6 +49,7 @@ type AdvertisingNotificationData = {
 };
 
 const VISIBLE_EMPTY_SLOT_LIMIT = 3;
+const TOP_SLOT_COUNT = 4;
 
 const DEFAULT_PLANS: DurationPlan[] = [
   { key: '1_month', label: '1 个月', months: 1, days: 30 },
@@ -68,7 +71,7 @@ function fallbackSlots(): SlotConfig[] {
       key: 'top',
       label: '顶部广告位',
       enabled: Boolean(app.forum.attribute('lowseekaiAdvertisingTopEnabled') ?? true),
-      capacity: Number(app.forum.attribute('lowseekaiAdvertisingTopSlots') || 3),
+      capacity: TOP_SLOT_COUNT,
       pricePerMonth: Number(app.forum.attribute('lowseekaiAdvertisingTopPricePerMonth') || 0),
     },
   ];
@@ -157,6 +160,8 @@ class AdvertisingPage extends Page {
   private slotConfigs: SlotConfig[] = fallbackSlots();
   private loading = true;
   private submitting = false;
+  private uploading = false;
+  private renewingAd: number | null = null;
   private uploadedPath = '';
   private uploadedFileName = '';
   private fileInput: HTMLInputElement | null = null;
@@ -239,7 +244,17 @@ class AdvertisingPage extends Page {
       this.ads = Array.isArray(publicResponse.data) ? publicResponse.data : [];
       this.myAds = Array.isArray(myResponse.data) ? myResponse.data : [];
       if (Array.isArray(publicResponse.meta?.slots) && publicResponse.meta.slots.length) {
-        this.slotConfigs = publicResponse.meta.slots;
+        this.slotConfigs = publicResponse.meta.slots.map((slot: SlotConfig) => {
+          if (slot.key !== 'top') return slot;
+
+          const positions = Array.from({ length: TOP_SLOT_COUNT }, (_, index) => {
+            const existing = slot.positions?.find((position) => position.position === index + 1);
+
+            return existing || { position: index + 1, available: true };
+          });
+
+          return { ...slot, capacity: TOP_SLOT_COUNT, positions };
+        });
       }
     } catch (error) {
       app.alerts.show({ type: 'error' }, this.errorMessage(error));
@@ -269,6 +284,12 @@ class AdvertisingPage extends Page {
 
     return (
       <div className="LowseekaiAdvertisingPage-content">
+        {app.forum.attribute('lowseekaiAdvertisingCanSubmit') ? (
+          this.applyForm()
+        ) : (
+          <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.no_permission')}</p>
+        )}
+        {app.session.user ? this.myAdsView() : null}
         <section className="LowseekaiAdvertising-list">
           <div className="LowseekaiAdvertising-sectionHeading">
             <h2>{app.translator.trans('lowseekai-advertising.forum.active_ads')}</h2>
@@ -279,12 +300,6 @@ class AdvertisingPage extends Page {
             <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.no_ads')}</p>
           )}
         </section>
-        {app.forum.attribute('lowseekaiAdvertisingCanSubmit') ? (
-          this.applyForm()
-        ) : (
-          <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.no_permission')}</p>
-        )}
-        {app.session.user ? this.myAdsView() : null}
       </div>
     );
   }
@@ -353,9 +368,19 @@ class AdvertisingPage extends Page {
             onchange={(event: any) => this.upload(event.target.files?.[0])}
           />
           <div className="LowseekaiAdvertising-filePicker">
-            <Button type="button" className="Button Button--secondary" icon="fas fa-image" onclick={() => this.fileInput?.click()}>
+            <Button
+              type="button"
+              className="Button Button--secondary"
+              icon="fas fa-image"
+              loading={this.uploading}
+              disabled={this.uploading}
+              onclick={() => this.fileInput?.click()}
+            >
               {app.translator.trans('lowseekai-advertising.forum.choose_file')}
             </Button>
+            {this.uploading ? (
+              <span className="helpText LowseekaiAdvertising-uploadStatus">{app.translator.trans('lowseekai-advertising.forum.uploading')}</span>
+            ) : null}
             <span className="LowseekaiAdvertising-fileName">
               {this.uploadedFileName || app.translator.trans('lowseekai-advertising.forum.no_file')}
             </span>
@@ -404,12 +429,32 @@ class AdvertisingPage extends Page {
           this.myAds.map((ad) => (
             <div className="LowseekaiAdvertising-myRow" key={ad.id}>
               <img src={ad.imageUrl} alt={ad.title} />
-              <div>
+              <div className="LowseekaiAdvertising-myDetails">
                 <strong>{ad.title}</strong>
                 <span>
                   {this.statusLabel(ad.status)}
                   {ad.reviewNote ? ` · ${ad.reviewNote}` : ''}
                 </span>
+                <span>
+                  {ad.slotLabel} · {app.translator.trans('lowseekai-advertising.forum.position_option', { position: ad.slotPosition || '-' })} ·{' '}
+                  {ad.durationLabel} · {ad.totalPrice} {app.forum.attribute('lowseekaiAdvertisingCurrencyName') || '积分'}
+                </span>
+                {ad.startsAt ? (
+                  <span>{app.translator.trans('lowseekai-advertising.forum.starts_at', { date: this.formatDate(ad.startsAt) })}</span>
+                ) : null}
+                {ad.endsAt ? <span>{app.translator.trans('lowseekai-advertising.forum.ends_at', { date: this.formatDate(ad.endsAt) })}</span> : null}
+                {ad.status === 'approved' && app.forum.attribute('lowseekaiAdvertisingRenewalEnabled') ? (
+                  <Button
+                    type="button"
+                    className="Button Button--secondary LowseekaiAdvertising-renewButton"
+                    icon="fas fa-redo"
+                    loading={this.renewingAd === ad.id}
+                    disabled={this.renewingAd !== null}
+                    onclick={() => this.renew(ad)}
+                  >
+                    {app.translator.trans('lowseekai-advertising.forum.renew')}
+                  </Button>
+                ) : null}
               </div>
             </div>
           ))
@@ -423,6 +468,9 @@ class AdvertisingPage extends Page {
   async upload(file?: File) {
     if (!file) return;
 
+    this.uploading = true;
+    m.redraw();
+
     const body = new FormData();
     body.append('image', file);
 
@@ -433,9 +481,42 @@ class AdvertisingPage extends Page {
       app.alerts.show({ type: 'success' }, app.translator.trans('lowseekai-advertising.forum.upload_success'));
     } catch (error) {
       app.alerts.show({ type: 'error' }, this.errorMessage(error));
+    } finally {
+      this.uploading = false;
+      m.redraw();
+    }
+  }
+
+  async renew(ad: AdRecord) {
+    if (
+      !window.confirm(
+        String(
+          app.translator.trans('lowseekai-advertising.forum.renew_confirm', {
+            title: ad.title,
+            price: ad.renewalPrice || ad.totalPrice,
+          })
+        )
+      )
+    ) {
+      return;
     }
 
+    this.renewingAd = ad.id;
     m.redraw();
+
+    try {
+      await app.request({
+        method: 'POST',
+        url: this.apiUrl(`/advertising/ads/${ad.id}/renew`),
+      });
+      app.alerts.show({ type: 'success' }, app.translator.trans('lowseekai-advertising.forum.renew_success'));
+      await this.load();
+    } catch (error) {
+      app.alerts.show({ type: 'error' }, this.errorMessage(error));
+    } finally {
+      this.renewingAd = null;
+      m.redraw();
+    }
   }
 
   clearUploadedFile() {
@@ -481,6 +562,10 @@ class AdvertisingPage extends Page {
     const key = ['pending', 'approved', 'rejected', 'expired', 'hidden'].includes(status) ? status : 'pending';
 
     return app.translator.trans(`lowseekai-advertising.forum.status_${key}`);
+  }
+
+  formatDate(value: string) {
+    return new Date(value).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
   }
 
   errorMessage(error: any) {
@@ -531,7 +616,7 @@ class AdvertisingSlotGrid extends Component<{ slot: 'sidebar' | 'top' }> {
       return null;
     }
 
-    const capacity = this.config.capacity;
+    const capacity = slot === 'top' ? TOP_SLOT_COUNT : this.config.capacity;
     const adsByPosition = new Map<number, AdRecord>();
     this.ads.forEach((ad, index) => {
       const position = Number(ad.slotPosition) > 0 ? Number(ad.slotPosition) : index + 1;
@@ -551,15 +636,12 @@ class AdvertisingSlotGrid extends Component<{ slot: 'sidebar' | 'top' }> {
       if (ad) return true;
 
       visibleEmptySlots += 1;
-      return visibleEmptySlots <= VISIBLE_EMPTY_SLOT_LIMIT;
+      return slot === 'top' || visibleEmptySlots <= VISIBLE_EMPTY_SLOT_LIMIT;
     });
-    const hiddenEmptySlots = Math.max(0, capacity - adsByPosition.size - VISIBLE_EMPTY_SLOT_LIMIT);
+    const hiddenEmptySlots = slot === 'sidebar' ? Math.max(0, capacity - adsByPosition.size - VISIBLE_EMPTY_SLOT_LIMIT) : 0;
 
     return (
-      <div
-        className={`LowseekaiAdvertising-${slot}`}
-        style={slot === 'top' ? ({ '--lowseekai-advertising-top-slots': String(this.config.capacity) } as any) : undefined}
-      >
+      <div className={`LowseekaiAdvertising-${slot}`}>
         {slotItems.map(({ ad, position }) =>
           ad ? (
             <AdCard ad={ad} placement={slot} key={ad.id} />
@@ -576,7 +658,7 @@ class AdvertisingSlotGrid extends Component<{ slot: 'sidebar' | 'top' }> {
             </a>
           )
         )}
-        {hiddenEmptySlots > 0 ? (
+        {slot === 'sidebar' && hiddenEmptySlots > 0 ? (
           <a className="LowseekaiAdvertising-viewAll" href={app.route('lowseekai-advertising.index')}>
             {app.translator.trans('lowseekai-advertising.forum.view_all_slots')}
           </a>

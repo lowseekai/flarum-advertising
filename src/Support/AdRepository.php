@@ -65,6 +65,64 @@ class AdRepository
         return $ad;
     }
 
+    public function renew(User $actor, Ad $ad): Ad
+    {
+        if (! $this->settings->enabled()) {
+            throw new ValidationException(['message' => '广告位暂未开放购买。']);
+        }
+
+        if (! $this->settings->renewalEnabled()) {
+            throw new ValidationException(['message' => '广告续费功能暂未开放。']);
+        }
+
+        $updated = $this->db->transaction(function () use ($actor, $ad) {
+            $renewed = Ad::query()->whereKey($ad->id)->lockForUpdate()->firstOrFail();
+
+            if ((int) $renewed->user_id !== (int) $actor->id) {
+                throw new ValidationException(['message' => '你不能续费其他用户的广告。']);
+            }
+
+            if ($renewed->status !== 'approved') {
+                throw new ValidationException(['status' => '只有已通过的广告可以续费。']);
+            }
+
+            if (! $this->settings->slotEnabled((string) $renewed->slot_key)) {
+                throw new ValidationException(['slotKey' => '该广告位当前未开放。']);
+            }
+
+            $durationPlanKey = $this->normalizeDurationPlan($renewed->duration_plan ?: $renewed->duration_days);
+            $durationPlan = $this->settings->durationPlan($durationPlanKey);
+            $renewalPrice = $this->totalPrice((string) $renewed->slot_key, $durationPlanKey);
+
+            if ($renewalPrice > 0) {
+                try {
+                    $this->points->deduct(
+                        $actor,
+                        $renewalPrice,
+                        'advertising.renewal',
+                        'advertising_ad',
+                        (int) $renewed->id
+                    );
+                } catch (\DomainException) {
+                    throw new ValidationException(['points' => '用户积分余额不足，无法续费该广告。']);
+                }
+            }
+
+            $now = Carbon::now('Asia/Shanghai');
+            $base = $renewed->ends_at && $renewed->ends_at->isFuture()
+                ? $renewed->ends_at->copy()
+                : $now;
+
+            $renewed->ends_at = $base->addDays((int) $durationPlan['days']);
+            $renewed->is_visible = true;
+            $renewed->save();
+
+            return $renewed->fresh('user');
+        });
+
+        return $updated;
+    }
+
     public function updateByAdmin(User $actor, Ad $ad, array $attributes): Ad
     {
         $statusChanged = false;

@@ -34,6 +34,7 @@ type Config = {
   maxImageSizeKb: number;
   currencyName: string;
   currencyIcon: string;
+  renewalEnabled: boolean;
 };
 
 const DEFAULT_CONFIG: Config = {
@@ -41,12 +42,13 @@ const DEFAULT_CONFIG: Config = {
   sidebarEnabled: true,
   topEnabled: true,
   sidebarSlots: 10,
-  topSlots: 3,
+  topSlots: 4,
   sidebarPricePerMonth: 20,
   topPricePerMonth: 30,
   maxImageSizeKb: 2048,
   currencyName: '积分',
   currencyIcon: 'fas fa-coins',
+  renewalEnabled: true,
 };
 
 class AdvertisingSettingsPage extends ExtensionPage {
@@ -177,8 +179,13 @@ class AdvertisingSettingsPage extends ExtensionPage {
             {app.translator.trans('lowseekai-advertising.admin.top_enabled')}
           </Switch>
         </div>
+        <div className="Form-group">
+          <Switch state={this.config.renewalEnabled} onchange={(value: boolean) => (this.config.renewalEnabled = value)}>
+            {app.translator.trans('lowseekai-advertising.admin.renewal_enabled')}
+          </Switch>
+        </div>
         {this.numberField('sidebarSlots', 'lowseekai-advertising.admin.sidebar_slots', 1, 50)}
-        {this.numberField('topSlots', 'lowseekai-advertising.admin.top_slots', 1, 12)}
+        <p className="helpText">{app.translator.trans('lowseekai-advertising.admin.top_slots_fixed')}</p>
         {this.numberField('sidebarPricePerMonth', 'lowseekai-advertising.admin.sidebar_price', 0)}
         {this.numberField('topPricePerMonth', 'lowseekai-advertising.admin.top_price', 0)}
         {this.numberField('maxImageSizeKb', 'lowseekai-advertising.admin.max_image_size', 128)}
@@ -207,7 +214,7 @@ class AdvertisingSettingsPage extends ExtensionPage {
   }
 
   numberField(
-    key: keyof Pick<Config, 'sidebarSlots' | 'topSlots' | 'sidebarPricePerMonth' | 'topPricePerMonth' | 'maxImageSizeKb'>,
+    key: keyof Pick<Config, 'sidebarSlots' | 'sidebarPricePerMonth' | 'topPricePerMonth' | 'maxImageSizeKb'>,
     labelKey: string,
     min: number,
     max?: number

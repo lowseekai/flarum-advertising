@@ -8,6 +8,10 @@ use Lowseekai\Advertising\Model\Ad;
 
 class AdSerializer
 {
+    public function __construct(protected AdvertisingSettings $settings)
+    {
+    }
+
     public function serialize(Ad $ad): array
     {
         $user = $ad->user;
@@ -26,6 +30,7 @@ class AdSerializer
             'durationPlan' => $ad->duration_plan ?: $this->durationPlan((int) $ad->duration_days),
             'pricePerDay' => (int) $ad->price_per_day,
             'pricePerMonth' => (int) $ad->price_per_day,
+            'renewalPrice' => $this->settings->pricePerMonth((string) $ad->slot_key) * $this->monthsForAd($ad),
             'durationLabel' => $this->durationLabel($ad->duration_plan ?: $this->durationPlan((int) $ad->duration_days)),
             'totalPrice' => (int) $ad->total_price,
             'status' => (string) $ad->status,
@@ -68,5 +73,12 @@ class AdSerializer
     protected function durationLabel(string $planKey): string
     {
         return AdvertisingSettings::DURATION_PLANS[$planKey]['label'] ?? $planKey;
+    }
+
+    protected function monthsForAd(Ad $ad): int
+    {
+        $planKey = $ad->duration_plan ?: $this->durationPlan((int) $ad->duration_days);
+
+        return (int) (AdvertisingSettings::DURATION_PLANS[$planKey]['months'] ?? 1);
     }
 }

@@ -20,6 +20,9 @@ class AdvertisingSettings
     public const KEY_MAX_IMAGE_SIZE = 'lowseekai-advertising.max_image_size_kb';
     public const KEY_CURRENCY_NAME = 'lowseekai-advertising.currency_name';
     public const KEY_CURRENCY_ICON = 'lowseekai-advertising.currency_icon';
+    public const KEY_RENEWAL_ENABLED = 'lowseekai-advertising.renewal_enabled';
+
+    public const TOP_SLOT_COUNT = 4;
 
     public const SLOT_LABELS = [
         'sidebar' => '侧栏广告位',
@@ -69,9 +72,14 @@ class AdvertisingSettings
     public function slotCount(string $slotKey): int
     {
         return match ($slotKey) {
-            'top' => max(1, min(12, (int) $this->settings->get(self::KEY_TOP_SLOTS, 3))),
+            'top' => self::TOP_SLOT_COUNT,
             default => max(1, min(50, (int) $this->settings->get(self::KEY_SIDEBAR_SLOTS, 10))),
         };
+    }
+
+    public function renewalEnabled(): bool
+    {
+        return filter_var($this->settings->get(self::KEY_RENEWAL_ENABLED, true), FILTER_VALIDATE_BOOLEAN);
     }
 
     public function maxImageSizeKb(): int
