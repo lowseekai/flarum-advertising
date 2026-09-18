@@ -75,6 +75,8 @@ lowseekai-advertising:
     upload_success: "图片上传成功。"
     image_required: "请先上传广告图片。"
     pending_success: "提交成功，请等待管理员审核。"
+    apply_slot: "申请广告位"
+    view_all_slots: "查看全部广告位"
     my_ads: "我的广告"
     no_my_ads: "你还没有提交广告。"
     status_pending: "待审核"

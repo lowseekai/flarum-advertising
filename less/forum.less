@@ -49,7 +49,7 @@
 .IndexPage .Page-content:has(> .LowseekaiAdvertising-sidebar) {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 200px;
-  column-gap: 4px;
+  column-gap: 16px;
   align-items: start;
 }
 
@@ -65,12 +65,15 @@
   width: 200px;
 }
 
-.LowseekaiAdvertising-sidebar .LowseekaiAdvertising-card,
-.LowseekaiAdvertising-placeholder--sidebar {
+.LowseekaiAdvertising-sidebar .LowseekaiAdvertising-card {
   display: flex;
   width: 200px;
   height: 200px;
   margin: 0;
+}
+
+.LowseekaiAdvertising-sidebar .LowseekaiAdvertising-card span {
+  display: none;
 }
 
 .LowseekaiAdvertising-sidebar .LowseekaiAdvertising-card img {
@@ -82,8 +85,32 @@
 
 .LowseekaiAdvertising-placeholder {
   box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   border: 1px dashed var(--control-bg);
-  background: transparent;
+  color: var(--muted-color);
+  text-decoration: none;
+  text-align: center;
+}
+
+.LowseekaiAdvertising-placeholder:hover,
+.LowseekaiAdvertising-placeholder:focus {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.LowseekaiAdvertising-placeholder i {
+  font-size: 16px;
+}
+
+.LowseekaiAdvertising-sidebar .LowseekaiAdvertising-placeholder {
+  flex: 0 0 200px;
+  width: 200px;
+  height: 200px;
+  flex-direction: column;
 }
 
 .LowseekaiAdvertising-top {
@@ -94,23 +121,47 @@
   margin: 0 0 16px;
 }
 
-.LowseekaiAdvertising-top .LowseekaiAdvertising-card,
-.LowseekaiAdvertising-placeholder--top {
+.LowseekaiAdvertising-top .LowseekaiAdvertising-card {
   display: block;
   width: 100%;
-  height: 50px;
+  height: 60px;
   margin: 0;
 }
 
 .LowseekaiAdvertising-top .LowseekaiAdvertising-card img {
   width: 100%;
-  height: 50px;
+  height: 60px;
   border-radius: 0;
   object-fit: cover;
 }
 
 .LowseekaiAdvertising-top .LowseekaiAdvertising-card span {
   display: none;
+}
+
+.LowseekaiAdvertising-top .LowseekaiAdvertising-placeholder {
+  width: 100%;
+  height: 60px;
+}
+
+.LowseekaiAdvertising-viewAll {
+  grid-column: ~"1 / -1";
+  display: block;
+  margin-top: 4px;
+  color: var(--muted-color);
+  text-align: center;
+  text-decoration: none;
+}
+
+.LowseekaiAdvertising-viewAll:hover,
+.LowseekaiAdvertising-viewAll:focus {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.LowseekaiAdvertising-sidebar .LowseekaiAdvertising-viewAll {
+  flex: 0 0 auto;
+  margin-top: 4px;
 }
 
 .LowseekaiAdvertising-filePicker {

@@ -75,6 +75,8 @@ lowseekai-advertising:
     upload_success: "Image uploaded."
     image_required: "Please upload an advertisement image first."
     pending_success: "Submitted successfully. Please wait for administrator review."
+    apply_slot: "Apply for this slot"
+    view_all_slots: "View all advertising slots"
     my_ads: "My advertisements"
     no_my_ads: "You have not submitted any advertisements."
     status_pending: "Pending review"
