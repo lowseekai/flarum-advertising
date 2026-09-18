@@ -527,7 +527,7 @@ class AdvertisingSlotGrid extends Component<{ slot: 'sidebar' | 'top' }> {
 
   view() {
     const slot = this.slot;
-    if (!slot || !this.loaded || !app.forum.attribute('lowseekaiAdvertisingEnabled') || !this.config?.enabled) {
+    if (!slot || !app.forum.attribute('lowseekaiAdvertisingEnabled') || !this.config?.enabled) {
       return null;
     }
 
