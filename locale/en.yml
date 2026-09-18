@@ -4,20 +4,41 @@ lowseekai-advertising:
     title: "Advertising"
     help: "Configure monthly slot prices and review user submissions."
     enabled: "Enable advertising purchases"
+    sidebar_enabled: "Enable sidebar advertising slots"
+    top_enabled: "Enable top advertising slots"
+    sidebar_slots: "Number of sidebar slots"
+    top_slots: "Number of top slots"
     sidebar_price: "Sidebar slot monthly price"
     top_price: "Top slot monthly price"
     max_image_size: "Maximum image size (KB)"
     currency_name: "Points name"
     currency_icon: "Points icon class"
     pending_title: "Pending advertisements"
-    empty: "No pending advertisements."
+    approved_title: "Approved advertisements"
+    expiring_title: "Advertisements expiring soon"
+    rejected_title: "Rejected advertisements"
+    expired_title: "Expired advertisements"
+    hidden_title: "Hidden advertisements"
+    empty: "No advertisements."
     review_note: "Review note"
     approve: "Approve and charge points"
     reject: "Reject"
+    hide: "Hide"
+    restore: "Show again"
     save: "Save settings"
     saved: "Advertising settings saved."
     approved: "Advertisement approved and points charged."
     rejected: "Advertisement rejected."
+    hidden: "Advertisement hidden."
+    restored: "Advertisement is visible again."
+    status_pending: "Pending review"
+    status_approved: "Displaying"
+    status_rejected: "Rejected"
+    status_expired: "Expired"
+    status_hidden: "Hidden"
+    slot_info: "Slot: {slot}, position: {position}"
+    position_option: "Position {position}"
+    ends_at: "Expires: {date}"
     permissions:
       submit: "Submit advertising campaigns"
       manage: "Manage and review advertising campaigns"
@@ -32,13 +53,17 @@ lowseekai-advertising:
     slot: "Advertising slot"
     sidebar: "Sidebar slot"
     top: "Top slot"
+    position: "Slot position"
+    position_option: "Position {position}"
+    position_unavailable: "Occupied"
+    no_positions: "There are no available advertising positions."
     title_label: "Advertisement title"
     url: "Destination URL"
     image: "Advertisement image"
     choose_file: "Choose file"
     no_file: "No file selected"
     remove_file: "Remove image"
-    uploaded: "Image uploaded."
+    image_formats: "GIF, JPG, JPEG and PNG are supported. Sidebar ads are displayed in a 200x200 square."
     duration: "Duration"
     one_month: "1 month"
     three_months: "3 months"
@@ -56,10 +81,11 @@ lowseekai-advertising:
     status_approved: "Approved"
     status_rejected: "Rejected"
     status_expired: "Expired"
+    status_hidden: "Hidden"
     notification_pending_label: "Advertising applications"
     notification_reviewed_label: "Advertising review results"
     notification_pending: "User {user} submitted an advertisement: {title}. Estimated cost: {price} points."
-    notification_approved: "Your advertisement “{title}” was approved and {price} points were charged."
+    notification_approved: "Your advertisement “{title}” was approved. {price} points were charged. Slot: {slot}, expires: {endsAt}."
     notification_rejected: "Your advertisement “{title}” was rejected."
     notification_rejected_with_note: "Your advertisement “{title}” was rejected. Note: {note}"
   email:
@@ -70,6 +96,7 @@ lowseekai-advertising:
 
         Advertisement: {title}
         Slot: {slot}
+        Position: {position}
         Estimated cost: {price} points
 
         Please sign in to the administration panel to review it.
@@ -78,6 +105,8 @@ lowseekai-advertising:
       rejected_subject: "Advertising application rejected: {title}"
       approved_body: |
         Your advertisement “{title}” was approved and {price} points were charged.
+        Slot: {slot}, position: {position}
+        Expires: {endsAt}
       rejected_body: |
         Your advertisement “{title}” was rejected.
         Review note: {note}

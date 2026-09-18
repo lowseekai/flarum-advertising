@@ -14,6 +14,7 @@ use Lowseekai\Advertising\Api\Controller\CreateAdController;
 use Lowseekai\Advertising\Api\Controller\GetAdminConfigController;
 use Lowseekai\Advertising\Api\Controller\ListMyAdsController;
 use Lowseekai\Advertising\Api\Controller\ListPublicAdsController;
+use Lowseekai\Advertising\Api\Controller\ListSlotAvailabilityController;
 use Lowseekai\Advertising\Api\Controller\SaveAdminConfigController;
 use Lowseekai\Advertising\Api\Controller\UpdateAdminAdController;
 use Lowseekai\Advertising\Api\Controller\UploadImageController;
@@ -44,6 +45,7 @@ return [
 
     (new Extend\Routes('api'))
         ->get('/advertising/public/ads', 'lowseekai-advertising.public.ads', ListPublicAdsController::class)
+        ->get('/advertising/slots', 'lowseekai-advertising.slots', ListSlotAvailabilityController::class)
         ->get('/advertising/me/ads', 'lowseekai-advertising.me.ads', ListMyAdsController::class)
         ->post('/advertising/upload-image', 'lowseekai-advertising.upload-image', UploadImageController::class)
         ->post('/advertising/ads', 'lowseekai-advertising.ads.create', CreateAdController::class)
@@ -61,6 +63,14 @@ return [
                 ->get(fn ($forum, Context $context) => $context->getActor()->hasPermission('lowseekai-advertising.manage')),
             Schema\Boolean::make('lowseekaiAdvertisingEnabled')
                 ->get(fn () => resolve(AdvertisingSettings::class)->enabled()),
+            Schema\Boolean::make('lowseekaiAdvertisingSidebarEnabled')
+                ->get(fn () => resolve(AdvertisingSettings::class)->slotEnabled('sidebar')),
+            Schema\Boolean::make('lowseekaiAdvertisingTopEnabled')
+                ->get(fn () => resolve(AdvertisingSettings::class)->slotEnabled('top')),
+            Schema\Integer::make('lowseekaiAdvertisingSidebarSlots')
+                ->get(fn () => resolve(AdvertisingSettings::class)->slotCount('sidebar')),
+            Schema\Integer::make('lowseekaiAdvertisingTopSlots')
+                ->get(fn () => resolve(AdvertisingSettings::class)->slotCount('top')),
             Schema\Str::make('lowseekaiAdvertisingCurrencyName')
                 ->get(fn () => resolve(AdvertisingSettings::class)->currencyName()),
             Schema\Str::make('lowseekaiAdvertisingCurrencyIcon')
@@ -89,6 +99,10 @@ return [
 
     (new Extend\Settings())
         ->default('lowseekai-advertising.enabled', true)
+        ->default('lowseekai-advertising.sidebar_enabled', true)
+        ->default('lowseekai-advertising.top_enabled', true)
+        ->default('lowseekai-advertising.sidebar_slots', 10)
+        ->default('lowseekai-advertising.top_slots', 3)
         ->default('lowseekai-advertising.sidebar_price_per_month', 20)
         ->default('lowseekai-advertising.top_price_per_month', 30)
         ->default('lowseekai-advertising.max_image_size_kb', 2048)

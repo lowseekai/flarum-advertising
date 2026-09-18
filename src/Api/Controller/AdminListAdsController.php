@@ -6,6 +6,7 @@ namespace Lowseekai\Advertising\Api\Controller;
 
 use Flarum\Http\RequestUtil;
 use Flarum\User\Exception\PermissionDeniedException;
+use Carbon\Carbon;
 use Laminas\Diactoros\Response\JsonResponse;
 use Lowseekai\Advertising\Model\Ad;
 use Lowseekai\Advertising\Support\AdSerializer;
@@ -28,8 +29,14 @@ class AdminListAdsController implements RequestHandlerInterface
         $status = trim((string) ($params['status'] ?? ''));
         $query = Ad::query()->with('user')->orderByDesc('id');
 
-        if ($status !== '' && in_array($status, ['pending', 'approved', 'rejected', 'expired'], true)) {
+        if ($status !== '' && in_array($status, ['pending', 'approved', 'rejected', 'expired', 'hidden'], true)) {
             $query->where('status', $status);
+        }
+        if (($params['expiring'] ?? '') === '1') {
+            $query->where('status', 'approved')
+                ->whereNotNull('ends_at')
+                ->where('ends_at', '>', Carbon::now('Asia/Shanghai'))
+                ->where('ends_at', '<=', Carbon::now('Asia/Shanghai')->addDays(7));
         }
 
         $ads = $query->limit(200)->get();

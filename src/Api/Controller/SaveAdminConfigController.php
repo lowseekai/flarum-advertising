@@ -32,6 +32,10 @@ class SaveAdminConfigController implements RequestHandlerInterface
 
         $values = [
             AdvertisingSettings::KEY_ENABLED => filter_var($attrs['enabled'] ?? true, FILTER_VALIDATE_BOOLEAN) ? '1' : '0',
+            AdvertisingSettings::KEY_SIDEBAR_ENABLED => filter_var($attrs['sidebarEnabled'] ?? true, FILTER_VALIDATE_BOOLEAN) ? '1' : '0',
+            AdvertisingSettings::KEY_TOP_ENABLED => filter_var($attrs['topEnabled'] ?? true, FILTER_VALIDATE_BOOLEAN) ? '1' : '0',
+            AdvertisingSettings::KEY_SIDEBAR_SLOTS => (string) max(1, min(50, (int) ($attrs['sidebarSlots'] ?? $this->advertising->slotCount('sidebar')))),
+            AdvertisingSettings::KEY_TOP_SLOTS => (string) max(1, min(12, (int) ($attrs['topSlots'] ?? $this->advertising->slotCount('top')))),
             AdvertisingSettings::KEY_SIDEBAR_PRICE => (string) max(0, (int) ($attrs['sidebarPricePerMonth'] ?? $attrs['sidebarPricePerDay'] ?? $this->advertising->pricePerMonth('sidebar'))),
             AdvertisingSettings::KEY_TOP_PRICE => (string) max(0, (int) ($attrs['topPricePerMonth'] ?? $attrs['topPricePerDay'] ?? $this->advertising->pricePerMonth('top'))),
             AdvertisingSettings::KEY_MAX_IMAGE_SIZE => (string) max(128, min(20480, (int) ($attrs['maxImageSizeKb'] ?? $this->advertising->maxImageSizeKb()))),
@@ -45,6 +49,10 @@ class SaveAdminConfigController implements RequestHandlerInterface
 
         return new JsonResponse(['data' => [
             'enabled' => $values[AdvertisingSettings::KEY_ENABLED] === '1',
+            'sidebarEnabled' => $values[AdvertisingSettings::KEY_SIDEBAR_ENABLED] === '1',
+            'topEnabled' => $values[AdvertisingSettings::KEY_TOP_ENABLED] === '1',
+            'sidebarSlots' => (int) $values[AdvertisingSettings::KEY_SIDEBAR_SLOTS],
+            'topSlots' => (int) $values[AdvertisingSettings::KEY_TOP_SLOTS],
             'sidebarPricePerMonth' => (int) $values[AdvertisingSettings::KEY_SIDEBAR_PRICE],
             'topPricePerMonth' => (int) $values[AdvertisingSettings::KEY_TOP_PRICE],
             'durationPlans' => $this->advertising->durationPlans(),

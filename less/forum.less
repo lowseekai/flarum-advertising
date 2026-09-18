@@ -10,8 +10,7 @@
   margin: 0;
 }
 
-.LowseekaiAdvertising-sectionHeading,
-.LowseekaiAdvertisingAdmin-heading {
+.LowseekaiAdvertising-sectionHeading {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -47,40 +46,71 @@
   text-align: center;
 }
 
-.LowseekaiAdvertisingSidebar {
-  margin-top: 12px;
+.IndexPage .Page-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px;
+  column-gap: 4px;
+  align-items: start;
 }
 
-.LowseekaiAdvertisingTop {
+.IndexPage .Page-content > .LowseekaiAdvertising-top,
+.IndexPage .Page-content > .IndexPage-toolbar {
+  grid-column: 1 / -1;
+}
+
+.LowseekaiAdvertising-sidebar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 0 0 16px;
-  padding: 12px;
-  background: var(--control-bg);
-  border-radius: 6px;
+  flex-direction: column;
+  gap: 4px;
+  width: 200px;
 }
 
-.LowseekaiAdvertisingTop .LowseekaiAdvertising-card {
-  flex: 1 1 180px;
+.LowseekaiAdvertising-sidebar .LowseekaiAdvertising-card,
+.LowseekaiAdvertising-placeholder--sidebar {
+  display: flex;
+  width: 200px;
+  height: 200px;
   margin: 0;
 }
 
-.LowseekaiAdvertisingTop .LowseekaiAdvertising-card img {
-  width: 100%;
-  height: auto;
-  max-height: 140px;
+.LowseekaiAdvertising-sidebar .LowseekaiAdvertising-card img {
+  width: 200px;
+  height: 200px;
+  border-radius: 0;
+  object-fit: cover;
 }
 
-.LowseekaiAdvertisingSidebar .LowseekaiAdvertising-card {
-  width: 100%;
-  margin-right: 0;
+.LowseekaiAdvertising-placeholder {
+  box-sizing: border-box;
+  border: 1px dashed var(--control-bg);
+  background: transparent;
 }
 
-.LowseekaiAdvertisingSidebar .LowseekaiAdvertising-card img {
+.LowseekaiAdvertising-top {
+  display: grid;
+  grid-template-columns: repeat(var(--lowseekai-advertising-top-slots, 3), minmax(0, 1fr));
+  gap: 4px;
   width: 100%;
-  height: auto;
-  max-height: 140px;
+  margin: 0 0 16px;
+}
+
+.LowseekaiAdvertising-top .LowseekaiAdvertising-card,
+.LowseekaiAdvertising-placeholder--top {
+  display: block;
+  width: 100%;
+  height: 50px;
+  margin: 0;
+}
+
+.LowseekaiAdvertising-top .LowseekaiAdvertising-card img {
+  width: 100%;
+  height: 50px;
+  border-radius: 0;
+  object-fit: cover;
+}
+
+.LowseekaiAdvertising-top .LowseekaiAdvertising-card span {
+  display: none;
 }
 
 .LowseekaiAdvertising-filePicker {
@@ -132,4 +162,15 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+@media (max-width: 768px) {
+  .IndexPage .Page-content {
+    display: block;
+  }
+
+  .LowseekaiAdvertising-sidebar,
+  .LowseekaiAdvertising-top {
+    display: none;
+  }
 }

@@ -17,6 +17,7 @@ class AdSerializer
             'userId' => (int) $ad->user_id,
             'slotKey' => (string) $ad->slot_key,
             'slotLabel' => AdvertisingSettings::SLOT_LABELS[$ad->slot_key] ?? $ad->slot_key,
+            'slotPosition' => $ad->slot_position !== null ? (int) $ad->slot_position : null,
             'title' => (string) $ad->title,
             'imagePath' => (string) $ad->image_path,
             'imageUrl' => $this->imageUrl((string) $ad->image_path),

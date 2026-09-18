@@ -28,6 +28,7 @@ class AdRepository
         }
 
         $slotKey = $this->normalizeSlotKey($attributes['slotKey'] ?? 'sidebar');
+        $slotPosition = $this->normalizeSlotPosition($slotKey, $attributes['slotPosition'] ?? null);
         $durationPlanKey = $this->normalizeDurationPlan($attributes['durationPlan'] ?? $attributes['durationDays'] ?? '1_month');
         $durationPlan = $this->settings->durationPlan($durationPlanKey);
         $totalPrice = $this->totalPrice($slotKey, $durationPlanKey);
@@ -35,20 +36,28 @@ class AdRepository
         // Do not reserve points while pending; approval rechecks atomically.
         $this->assertSufficientBalance($actor, $totalPrice);
 
-        $ad = new Ad();
-        $ad->user_id = (int) $actor->id;
-        $ad->slot_key = $slotKey;
-        $ad->title = $this->normalizeTitle($attributes['title'] ?? '');
-        $ad->image_path = $this->normalizeImagePath($attributes['imagePath'] ?? '');
-        $ad->target_url = $this->normalizeUrl($attributes['targetUrl'] ?? '');
-        $ad->duration_plan = $durationPlanKey;
-        $ad->duration_days = (int) $durationPlan['days'];
-        $ad->price_per_day = $this->settings->pricePerMonth($slotKey);
-        $ad->total_price = $totalPrice;
-        $ad->status = 'pending';
-        $ad->is_visible = false;
-        $ad->sort_order = 0;
-        $ad->save();
+        $ad = $this->db->transaction(function () use ($actor, $attributes, $slotKey, $slotPosition, $durationPlanKey, $durationPlan, $totalPrice) {
+            $this->assertSlotAvailable($slotKey, $slotPosition);
+
+            $ad = new Ad();
+            $ad->user_id = (int) $actor->id;
+            $ad->slot_key = $slotKey;
+            $ad->slot_position = $slotPosition;
+            $ad->title = $this->normalizeTitle($attributes['title'] ?? '');
+            $ad->image_path = $this->normalizeImagePath($attributes['imagePath'] ?? '');
+            $ad->target_url = $this->normalizeUrl($attributes['targetUrl'] ?? '');
+            $ad->duration_plan = $durationPlanKey;
+            $ad->duration_days = (int) $durationPlan['days'];
+            // This legacy column now stores the monthly price.
+            $ad->price_per_day = $this->settings->pricePerMonth($slotKey);
+            $ad->total_price = $totalPrice;
+            $ad->status = 'pending';
+            $ad->is_visible = false;
+            $ad->sort_order = $slotPosition;
+            $ad->save();
+
+            return $ad;
+        });
 
         $ad = $ad->fresh('user');
         $this->notifier->notifyPendingReview($ad, $actor);
@@ -75,6 +84,10 @@ class AdRepository
             if (array_key_exists('slotKey', $attributes)) {
                 $ad->slot_key = $this->normalizeSlotKey($attributes['slotKey']);
                 $pricingChanged = true;
+            }
+            if (array_key_exists('slotPosition', $attributes)) {
+                $ad->slot_position = $this->normalizeSlotPosition($ad->slot_key, $attributes['slotPosition']);
+                $ad->sort_order = (int) $ad->slot_position;
             }
             if (array_key_exists('durationPlan', $attributes) || array_key_exists('durationDays', $attributes)) {
                 $planKey = $this->normalizeDurationPlan($attributes['durationPlan'] ?? $attributes['durationDays']);
@@ -106,14 +119,16 @@ class AdRepository
                 $ad->is_visible = (bool) $attributes['isVisible'] && $ad->status === 'approved';
             }
 
-            $ad->reviewed_by = (int) $actor->id;
-            $ad->reviewed_at = Carbon::now();
+            if (array_key_exists('status', $attributes)) {
+                $ad->reviewed_by = (int) $actor->id;
+                $ad->reviewed_at = Carbon::now('Asia/Shanghai');
+            }
             $ad->save();
 
             return $ad->fresh('user');
         });
 
-        if ($statusChanged) {
+        if ($statusChanged && in_array($updated->status, ['approved', 'rejected'], true)) {
             $this->notifier->notifyReviewed($updated, $actor);
         }
 
@@ -125,7 +140,7 @@ class AdRepository
         $ads = Ad::query()
             ->where('status', 'approved')
             ->whereNotNull('ends_at')
-            ->where('ends_at', '<=', Carbon::now())
+            ->where('ends_at', '<=', Carbon::now('Asia/Shanghai'))
             ->limit(max(1, $limit))
             ->get();
 
@@ -153,13 +168,18 @@ class AdRepository
 
     protected function applyStatus(Ad $ad, string $status, string $previousStatus): void
     {
-        if (! in_array($status, ['pending', 'approved', 'rejected', 'expired'], true)) {
+        if (! in_array($status, ['pending', 'approved', 'rejected', 'expired', 'hidden'], true)) {
             throw new ValidationException(['status' => '广告状态无效。']);
         }
 
         $ad->status = $status;
 
         if ($status === 'approved') {
+            if ($ad->slot_position === null) {
+                $ad->slot_position = $this->firstAvailableSlotPosition($ad->slot_key, (int) $ad->id);
+                $ad->sort_order = (int) $ad->slot_position;
+            }
+            $this->assertSlotAvailable($ad->slot_key, $ad->slot_position, (int) $ad->id);
             if ($previousStatus !== 'approved' && ! $ad->point_transaction_id && $ad->total_price > 0) {
                 try {
                     $tx = $this->points->deduct(
@@ -176,15 +196,71 @@ class AdRepository
                 $ad->point_transaction_id = (int) $tx->id;
             }
 
-            $start = $ad->starts_at ?: Carbon::now();
+            $start = $ad->starts_at ?: Carbon::now('Asia/Shanghai');
             $ad->starts_at = $start;
-            $ad->ends_at = $start->copy()->addDays($this->durationDaysForAd($ad));
+            if (! $ad->ends_at || $ad->ends_at->isPast()) {
+                $ad->ends_at = $start->copy()->addDays($this->durationDaysForAd($ad));
+            }
             $ad->is_visible = true;
 
             return;
         }
 
         $ad->is_visible = false;
+    }
+
+    protected function assertSlotAvailable(string $slotKey, ?int $position, ?int $exceptId = null): void
+    {
+        if (! $this->settings->slotEnabled($slotKey)) {
+            throw new ValidationException(['slotKey' => '该广告位当前未开放。']);
+        }
+
+        if ($position === null) {
+            throw new ValidationException(['slotPosition' => '请选择广告位置。']);
+        }
+
+        $query = Ad::query()
+            ->where('slot_key', $slotKey)
+            ->where('slot_position', $position)
+            ->whereIn('status', ['pending', 'approved'])
+            ->lockForUpdate();
+
+        if ($exceptId !== null) {
+            $query->where('id', '<>', $exceptId);
+        }
+
+        if ($query->exists()) {
+            throw new ValidationException(['slotPosition' => '该广告位置已被占用，请选择其他位置。']);
+        }
+    }
+
+    protected function normalizeSlotPosition(string $slotKey, mixed $value): int
+    {
+        if ($value === null || $value === '') {
+            throw new ValidationException(['slotPosition' => '请选择广告位置。']);
+        }
+
+        $position = (int) $value;
+        if ($position < 1 || $position > $this->settings->slotCount($slotKey)) {
+            throw new ValidationException(['slotPosition' => '广告位置无效。']);
+        }
+
+        return $position;
+    }
+
+    protected function firstAvailableSlotPosition(string $slotKey, ?int $exceptId = null): int
+    {
+        for ($position = 1; $position <= $this->settings->slotCount($slotKey); $position++) {
+            try {
+                $this->assertSlotAvailable($slotKey, $position, $exceptId);
+
+                return $position;
+            } catch (ValidationException) {
+                continue;
+            }
+        }
+
+        throw new ValidationException(['slotPosition' => '该广告位没有可用位置。']);
     }
 
     protected function assertSufficientBalance(User $user, int $required): void

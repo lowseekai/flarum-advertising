@@ -9,6 +9,10 @@ use Flarum\Settings\SettingsRepositoryInterface;
 class AdvertisingSettings
 {
     public const KEY_ENABLED = 'lowseekai-advertising.enabled';
+    public const KEY_SIDEBAR_ENABLED = 'lowseekai-advertising.sidebar_enabled';
+    public const KEY_TOP_ENABLED = 'lowseekai-advertising.top_enabled';
+    public const KEY_SIDEBAR_SLOTS = 'lowseekai-advertising.sidebar_slots';
+    public const KEY_TOP_SLOTS = 'lowseekai-advertising.top_slots';
     public const KEY_SIDEBAR_PRICE = 'lowseekai-advertising.sidebar_price_per_month';
     public const KEY_TOP_PRICE = 'lowseekai-advertising.top_price_per_month';
     public const LEGACY_KEY_SIDEBAR_PRICE = 'lowseekai-advertising.sidebar_price_per_day';
@@ -54,6 +58,22 @@ class AdvertisingSettings
         return filter_var($this->settings->get(self::KEY_ENABLED, true), FILTER_VALIDATE_BOOLEAN);
     }
 
+    public function slotEnabled(string $slotKey): bool
+    {
+        return match ($slotKey) {
+            'top' => filter_var($this->settings->get(self::KEY_TOP_ENABLED, true), FILTER_VALIDATE_BOOLEAN),
+            default => filter_var($this->settings->get(self::KEY_SIDEBAR_ENABLED, true), FILTER_VALIDATE_BOOLEAN),
+        };
+    }
+
+    public function slotCount(string $slotKey): int
+    {
+        return match ($slotKey) {
+            'top' => max(1, min(12, (int) $this->settings->get(self::KEY_TOP_SLOTS, 3))),
+            default => max(1, min(50, (int) $this->settings->get(self::KEY_SIDEBAR_SLOTS, 10))),
+        };
+    }
+
     public function maxImageSizeKb(): int
     {
         return max(128, min(20480, (int) $this->settings->get(self::KEY_MAX_IMAGE_SIZE, 2048)));
@@ -92,6 +112,8 @@ class AdvertisingSettings
         return array_map(fn (string $key, string $label) => [
             'key' => $key,
             'label' => $label,
+            'enabled' => $this->slotEnabled($key),
+            'capacity' => $this->slotCount($key),
             'pricePerMonth' => $this->pricePerMonth($key),
         ], array_keys(self::SLOT_LABELS), array_values(self::SLOT_LABELS));
     }

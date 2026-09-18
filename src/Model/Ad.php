@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int $user_id
  * @property string $slot_key
+ * @property int|null $slot_position
  * @property string $title
  * @property string $image_path
  * @property string $target_url
@@ -38,6 +39,7 @@ class Ad extends AbstractModel
     protected $casts = [
         'duration_days' => 'integer',
         'duration_plan' => 'string',
+        'slot_position' => 'integer',
         'price_per_day' => 'integer',
         'total_price' => 'integer',
         'point_transaction_id' => 'integer',

@@ -37,9 +37,11 @@ class AdReviewedBlueprint implements BlueprintInterface, AlertableInterface, Mai
             'adId' => (int) $this->ad->id,
             'title' => (string) $this->ad->title,
             'slotLabel' => AdvertisingSettings::SLOT_LABELS[$this->ad->slot_key] ?? (string) $this->ad->slot_key,
+            'slotPosition' => $this->ad->slot_position !== null ? (int) $this->ad->slot_position : null,
             'status' => (string) $this->ad->status,
             'totalPrice' => (int) $this->ad->total_price,
             'reviewNote' => (string) ($this->ad->review_note ?? ''),
+            'endsAt' => $this->ad->ends_at?->timezone('Asia/Shanghai')->format('Y-m-d H:i'),
         ];
     }
 

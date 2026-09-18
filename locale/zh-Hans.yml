@@ -2,22 +2,43 @@ lowseekai-advertising:
   error: "操作失败，请稍后重试。"
   admin:
     title: "广告管理"
-    help: "配置广告位月价格，并审核用户提交的广告。"
+    help: "配置广告位、月价格，并审核用户提交的广告。"
     enabled: "开放广告位购买"
+    sidebar_enabled: "启用侧栏广告位"
+    top_enabled: "启用顶部广告位"
+    sidebar_slots: "侧栏广告位数量"
+    top_slots: "顶部广告位数量"
     sidebar_price: "侧栏广告位每月价格"
     top_price: "顶部广告位每月价格"
     max_image_size: "图片大小上限（KB）"
     currency_name: "积分名称"
     currency_icon: "积分图标 class"
     pending_title: "待审核广告"
-    empty: "暂无待审核广告。"
+    approved_title: "已审核广告"
+    expiring_title: "即将过期广告"
+    rejected_title: "已拒绝广告"
+    expired_title: "已过期广告"
+    hidden_title: "已下架广告"
+    empty: "暂无广告。"
     review_note: "审核备注"
     approve: "通过并扣除积分"
     reject: "拒绝"
+    hide: "下架"
+    restore: "重新展示"
     save: "保存设置"
     saved: "广告设置已保存。"
     approved: "广告已通过审核，积分已扣除。"
     rejected: "广告已拒绝。"
+    hidden: "广告已下架。"
+    restored: "广告已重新展示。"
+    status_pending: "待审核"
+    status_approved: "展示中"
+    status_rejected: "已拒绝"
+    status_expired: "已过期"
+    status_hidden: "已下架"
+    slot_info: "广告位：{slot}，位置：{position}"
+    position_option: "位置 {position}"
+    ends_at: "到期时间：{date}"
     permissions:
       submit: "提交广告活动"
       manage: "管理和审核广告活动"
@@ -32,13 +53,17 @@ lowseekai-advertising:
     slot: "广告位"
     sidebar: "侧栏广告位"
     top: "顶部广告位"
+    position: "广告位置"
+    position_option: "位置 {position}"
+    position_unavailable: "已占用"
+    no_positions: "当前没有可用广告位置。"
     title_label: "广告标题"
     url: "跳转链接"
     image: "广告图片"
     choose_file: "选择文件"
     no_file: "未选择文件"
     remove_file: "移除图片"
-    uploaded: "图片已上传。"
+    image_formats: "支持 GIF、JPG、JPEG、PNG。侧栏广告按 200×200 像素比例展示。"
     duration: "展示时长"
     one_month: "1 个月"
     three_months: "3 个月"
@@ -56,10 +81,11 @@ lowseekai-advertising:
     status_approved: "已通过"
     status_rejected: "已拒绝"
     status_expired: "已过期"
+    status_hidden: "已下架"
     notification_pending_label: "广告申请"
     notification_reviewed_label: "广告审核结果"
     notification_pending: "用户 {user} 提交了广告申请：{title}，预计消耗 {price} 积分。"
-    notification_approved: "你的广告“{title}”已通过审核，已扣除 {price} 积分。"
+    notification_approved: "你的广告“{title}”已通过审核，已扣除 {price} 积分，广告位：{slot}，到期时间：{endsAt}。"
     notification_rejected: "你的广告“{title}”未通过审核。"
     notification_rejected_with_note: "你的广告“{title}”未通过审核。备注：{note}"
   email:
@@ -70,6 +96,7 @@ lowseekai-advertising:
 
         广告标题：{title}
         广告位：{slot}
+        广告位置：{position}
         预计消耗：{price} 积分
 
         请登录论坛后台进行审核。
@@ -78,6 +105,8 @@ lowseekai-advertising:
       rejected_subject: "广告申请未通过：{title}"
       approved_body: |
         你的广告“{title}”已通过审核，已扣除 {price} 积分。
+        广告位：{slot}，广告位置：{position}
+        到期时间：{endsAt}
       rejected_body: |
         你的广告“{title}”未通过审核。
         审核备注：{note}

@@ -41,18 +41,18 @@ class ImageUploader
         try {
             $info = @getimagesize($tmpPath);
             if ($info === false) {
-                throw new ValidationException(['image' => '图片文件无效，请上传 JPG、PNG 或 WEBP 图片。']);
+                throw new ValidationException(['image' => '图片文件无效，请上传 GIF、JPG 或 PNG 图片。']);
             }
 
             $mime = strtolower((string) ($info['mime'] ?? ''));
             $extensions = [
                 'image/jpeg' => 'jpg',
                 'image/png' => 'png',
-                'image/webp' => 'webp',
+                'image/gif' => 'gif',
             ];
 
             if (! isset($extensions[$mime])) {
-                throw new ValidationException(['image' => '仅支持 JPG、PNG、WEBP 格式的图片。']);
+                throw new ValidationException(['image' => '仅支持 GIF、JPG、JPEG、PNG 格式的图片。']);
             }
 
             $filename = date('YmdHis').'-'.bin2hex(random_bytes(8)).'.'.$extensions[$mime];

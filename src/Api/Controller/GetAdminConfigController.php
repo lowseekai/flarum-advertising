@@ -30,6 +30,10 @@ class GetAdminConfigController implements RequestHandlerInterface
     {
         return [
             'enabled' => $this->settings->enabled(),
+            'sidebarEnabled' => $this->settings->slotEnabled('sidebar'),
+            'topEnabled' => $this->settings->slotEnabled('top'),
+            'sidebarSlots' => $this->settings->slotCount('sidebar'),
+            'topSlots' => $this->settings->slotCount('top'),
             'sidebarPricePerMonth' => $this->settings->pricePerMonth('sidebar'),
             'topPricePerMonth' => $this->settings->pricePerMonth('top'),
             'durationPlans' => $this->settings->durationPlans(),
