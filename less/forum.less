@@ -53,9 +53,17 @@
   align-items: start;
 }
 
-.IndexPage .Page-content:has(> .LowseekaiAdvertising-sidebar) > .LowseekaiAdvertising-top,
 .IndexPage .Page-content:has(> .LowseekaiAdvertising-sidebar) > .IndexPage-toolbar {
   grid-column: ~"1 / -1";
+}
+
+.Page-main:has(> .LowseekaiAdvertising-top-container) > .Page-container > .Page-sidebar,
+.Page-main:has(> .LowseekaiAdvertising-top-container) > .Page-container > .Page-content {
+  margin-top: 0;
+}
+
+.LowseekaiAdvertising-top-container {
+  box-sizing: border-box;
 }
 
 .LowseekaiAdvertising-sidebar {

@@ -608,14 +608,16 @@ app.initializers.add('lowseekai/advertising/forum', () => {
     items.add('lowseekai-advertising-right-rail', <AdvertisingSlotGrid slot="sidebar" />, 80);
   });
 
-  extend(IndexPage.prototype, 'view', (vnode: Mithril.Vnode<any, any>) => {
-    const children = Array.isArray(vnode.children) ? [...vnode.children] : vnode.children ? [vnode.children] : [];
+  extend(PageStructure.prototype, 'mainItems', (items: any) => {
+    if (app.current?.get('routeName') !== 'index') return;
 
-    if (children.some((child: any) => child?.attrs?.className === 'LowseekaiAdvertising-top')) return;
-
-    const toolbarIndex = children.findIndex((child: any) => child?.attrs?.className === 'IndexPage-toolbar');
-    children.splice(toolbarIndex >= 0 ? toolbarIndex : 0, 0, <AdvertisingSlotGrid slot="top" />);
-    vnode.children = children;
+    items.add(
+      'lowseekai-advertising-top',
+      <div className="container LowseekaiAdvertising-top-container">
+        <AdvertisingSlotGrid slot="top" />
+      </div>,
+      50
+    );
   });
 
   extend(IndexSidebar.prototype, 'navItems', (items: any) => {
