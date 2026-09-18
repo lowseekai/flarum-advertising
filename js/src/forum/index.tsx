@@ -489,9 +489,9 @@ class AdvertisingPage extends Page {
 class AdvertisingSlotGrid extends Component<{ slot: 'sidebar' | 'top' }> {
   private ads: AdRecord[] = [];
   private config: SlotConfig | null = null;
-  private loaded = false;
 
   oninit() {
+    this.config = fallbackSlots().find((slot) => slot.key === this.attrs.slot) || null;
     this.load();
   }
 
@@ -502,17 +502,16 @@ class AdvertisingSlotGrid extends Component<{ slot: 'sidebar' | 'top' }> {
         url: `${app.forum.attribute('apiUrl')}/advertising/public/ads?slot=${this.attrs.slot}`,
       });
       this.ads = Array.isArray(response.data) ? response.data : [];
-      this.config = (response.meta?.slots || []).find((slot: SlotConfig) => slot.key === this.attrs.slot) || null;
+      this.config = (response.meta?.slots || []).find((slot: SlotConfig) => slot.key === this.attrs.slot) || this.config || null;
     } catch {
       this.ads = [];
     } finally {
-      this.loaded = true;
       m.redraw();
     }
   }
 
   view() {
-    if (!this.loaded || !app.forum.attribute('lowseekaiAdvertisingEnabled') || !this.config?.enabled) return null;
+    if (!app.forum.attribute('lowseekaiAdvertisingEnabled') || !this.config?.enabled) return null;
 
     const byPosition = new Map<number, AdRecord>();
     this.ads.forEach((ad, index) => byPosition.set(ad.slotPosition || index + 1, ad));

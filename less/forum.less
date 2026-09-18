@@ -46,16 +46,16 @@
   text-align: center;
 }
 
-.IndexPage .Page-content {
+.IndexPage .Page-content:has(> .LowseekaiAdvertising-sidebar) {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 200px;
   column-gap: 4px;
   align-items: start;
 }
 
-.IndexPage .Page-content > .LowseekaiAdvertising-top,
-.IndexPage .Page-content > .IndexPage-toolbar {
-  grid-column: 1 / -1;
+.IndexPage .Page-content:has(> .LowseekaiAdvertising-sidebar) > .LowseekaiAdvertising-top,
+.IndexPage .Page-content:has(> .LowseekaiAdvertising-sidebar) > .IndexPage-toolbar {
+  grid-column: ~"1 / -1";
 }
 
 .LowseekaiAdvertising-sidebar {
@@ -165,7 +165,7 @@
 }
 
 @media (max-width: 768px) {
-  .IndexPage .Page-content {
+  .IndexPage .Page-content:has(> .LowseekaiAdvertising-sidebar) {
     display: block;
   }
 
