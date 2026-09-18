@@ -605,8 +605,17 @@ app.initializers.add('lowseekai/advertising/forum', () => {
   });
 
   extend(IndexPage.prototype, 'contentItems', (items: any) => {
-    items.add('lowseekai-advertising-top', <AdvertisingSlotGrid slot="top" />, 105);
     items.add('lowseekai-advertising-right-rail', <AdvertisingSlotGrid slot="sidebar" />, 80);
+  });
+
+  extend(IndexPage.prototype, 'view', (vnode: Mithril.Vnode<any, any>) => {
+    const children = Array.isArray(vnode.children) ? [...vnode.children] : vnode.children ? [vnode.children] : [];
+
+    if (children.some((child: any) => child?.attrs?.className === 'LowseekaiAdvertising-top')) return;
+
+    const toolbarIndex = children.findIndex((child: any) => child?.attrs?.className === 'IndexPage-toolbar');
+    children.splice(toolbarIndex >= 0 ? toolbarIndex : 0, 0, <AdvertisingSlotGrid slot="top" />);
+    vnode.children = children;
   });
 
   extend(IndexSidebar.prototype, 'navItems', (items: any) => {
