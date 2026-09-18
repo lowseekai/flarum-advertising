@@ -490,7 +490,9 @@ class AdvertisingSlotGrid extends Component<{ slot: 'sidebar' | 'top' }> {
   private ads: AdRecord[] = [];
   private config: SlotConfig | null = null;
 
-  oninit() {
+  oninit(vnode: Mithril.Vnode<{ slot: 'sidebar' | 'top' }, this>) {
+    super.oninit(vnode);
+
     this.config = fallbackSlots().find((slot) => slot.key === this.attrs.slot) || null;
     this.load();
   }
