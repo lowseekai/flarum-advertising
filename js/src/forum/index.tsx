@@ -53,6 +53,11 @@ type AdvertisingNotificationData = {
 };
 
 const TOP_SLOT_COUNT = 4;
+const MOBILE_AD_BREAKPOINT = 768;
+
+function isMobileViewport() {
+  return typeof window !== 'undefined' && window.matchMedia(`(max-width: ${MOBILE_AD_BREAKPOINT}px)`).matches;
+}
 
 const DEFAULT_PLANS: DurationPlan[] = [
   { key: '1_month', label: '1 个月', months: 1, days: 30 },
@@ -624,7 +629,10 @@ class AdvertisingSlotGrid extends Component<{ slot: 'left_sidebar' | 'right_side
 
   async load() {
     const slot = this.slot;
-    if (!slot) return;
+    if (!slot || isMobileViewport()) {
+      this.loaded = true;
+      return;
+    }
 
     try {
       const response: any = await app.request({
@@ -643,7 +651,7 @@ class AdvertisingSlotGrid extends Component<{ slot: 'left_sidebar' | 'right_side
 
   view() {
     const slot = this.slot;
-    if (!slot || !app.forum.attribute('lowseekaiAdvertisingEnabled') || !this.config?.enabled) {
+    if (!slot || isMobileViewport() || !app.forum.attribute('lowseekaiAdvertisingEnabled') || !this.config?.enabled) {
       return null;
     }
 
@@ -721,7 +729,7 @@ app.initializers.add('lowseekai/advertising/forum', () => {
   });
 
   extend(IndexSidebar.prototype, 'items', (items: any) => {
-    if (app.current?.get('routeName') !== 'index') return;
+    if (app.current?.get('routeName') !== 'index' || isMobileViewport()) return;
 
     items.add(
       'lowseekai-advertising-left-sidebar',
@@ -731,12 +739,12 @@ app.initializers.add('lowseekai/advertising/forum', () => {
   });
 
   extend(IndexPage.prototype, 'contentItems', (items: any) => {
-    if (app.current?.get('routeName') !== 'index') return;
+    if (app.current?.get('routeName') !== 'index' || isMobileViewport()) return;
     items.add('lowseekai-advertising-right-rail', <AdvertisingSlotGrid slot="right_sidebar" />, 80);
   });
 
   extend(PageStructure.prototype, 'mainItems', (items: any) => {
-    if (app.current?.get('routeName') !== 'index') return;
+    if (app.current?.get('routeName') !== 'index' || isMobileViewport()) return;
 
     items.add(
       'lowseekai-advertising-top',
