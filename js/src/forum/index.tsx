@@ -45,6 +45,9 @@ type AdvertisingNotificationData = {
   status?: string;
   reviewNote?: string | null;
   slotLabel?: string;
+  slotPosition?: number | null;
+  position?: number | null;
+  startsAt?: string | null;
   endsAt?: string | null;
 };
 
@@ -61,18 +64,37 @@ const DEFAULT_PLANS: DurationPlan[] = [
 function fallbackSlots(): SlotConfig[] {
   return [
     {
-      key: 'sidebar',
-      label: '侧栏广告位',
-      enabled: Boolean(app.forum.attribute('lowseekaiAdvertisingSidebarEnabled') ?? true),
-      capacity: Number(app.forum.attribute('lowseekaiAdvertisingSidebarSlots') || 10),
-      pricePerMonth: Number(app.forum.attribute('lowseekaiAdvertisingSidebarPricePerMonth') || 0),
-    },
-    {
       key: 'top',
       label: '顶部广告位',
       enabled: Boolean(app.forum.attribute('lowseekaiAdvertisingTopEnabled') ?? true),
       capacity: TOP_SLOT_COUNT,
       pricePerMonth: Number(app.forum.attribute('lowseekaiAdvertisingTopPricePerMonth') || 0),
+    },
+    {
+      key: 'left_sidebar',
+      label: '左侧栏广告位',
+      enabled: Boolean(app.forum.attribute('lowseekaiAdvertisingLeftSidebarEnabled') ?? false),
+      capacity: Number(app.forum.attribute('lowseekaiAdvertisingLeftSidebarSlots') || 10),
+      pricePerMonth: Number(app.forum.attribute('lowseekaiAdvertisingLeftSidebarPricePerMonth') || 0),
+    },
+    {
+      key: 'right_sidebar',
+      label: '右侧栏广告位',
+      enabled: Boolean(
+        app.forum.attribute('lowseekaiAdvertisingRightSidebarEnabled') ??
+          app.forum.attribute('lowseekaiAdvertisingSidebarEnabled') ??
+          true
+      ),
+      capacity: Number(
+        app.forum.attribute('lowseekaiAdvertisingRightSidebarSlots') ||
+          app.forum.attribute('lowseekaiAdvertisingSidebarSlots') ||
+          10
+      ),
+      pricePerMonth: Number(
+        app.forum.attribute('lowseekaiAdvertisingRightSidebarPricePerMonth') ||
+          app.forum.attribute('lowseekaiAdvertisingSidebarPricePerMonth') ||
+          0
+      ),
     },
   ];
 }
@@ -80,10 +102,11 @@ function fallbackSlots(): SlotConfig[] {
 class AdCard extends Component<{ ad: AdRecord; placement?: string }> {
   view() {
     const ad = this.attrs.ad;
+    const placement = (this.attrs.placement || ad.slotKey).replace('_', '-');
 
     return (
       <a
-        className={`LowseekaiAdvertising-card LowseekaiAdvertising-card--${this.attrs.placement || ad.slotKey}`}
+        className={`LowseekaiAdvertising-card LowseekaiAdvertising-card--${placement}`}
         href={ad.targetUrl}
         target="_blank"
         rel="noopener noreferrer"
@@ -144,6 +167,8 @@ class AdReviewedNotification extends Notification {
       title: data.title || '',
       price: data.totalPrice || 0,
       slot: data.slotLabel || '',
+      position: data.position || data.slotPosition || '',
+      startsAt: data.startsAt || '',
       endsAt: data.endsAt || '',
       note: data.reviewNote || '',
     });
@@ -166,7 +191,7 @@ class AdvertisingPage extends Page {
   private uploadedFileName = '';
   private fileInput: HTMLInputElement | null = null;
   private refreshTimer: number | null = null;
-  private form = { slotKey: 'sidebar', slotPosition: 1, title: '', targetUrl: '', durationPlan: '1_month' };
+  private form = { slotKey: 'right_sidebar', slotPosition: 1, title: '', targetUrl: '', durationPlan: '1_month' };
 
   oninit(vnode: Mithril.Vnode) {
     super.oninit(vnode);
@@ -185,7 +210,10 @@ class AdvertisingPage extends Page {
   }
 
   setInitialSlot() {
-    const first = this.slotConfigs.find((slot) => slot.enabled) || this.slotConfigs[0];
+    const first =
+      this.slotConfigs.find((slot) => slot.key === 'right_sidebar' && slot.enabled) ||
+      this.slotConfigs.find((slot) => slot.enabled) ||
+      this.slotConfigs[0];
     if (first) this.form.slotKey = first.key;
   }
 
@@ -573,13 +601,13 @@ class AdvertisingPage extends Page {
   }
 }
 
-class AdvertisingSlotGrid extends Component<{ slot: 'sidebar' | 'top' }> {
+class AdvertisingSlotGrid extends Component<{ slot: 'left_sidebar' | 'right_sidebar' | 'top' }> {
   private ads: AdRecord[] = [];
   private config: SlotConfig | null = null;
   private loaded = false;
-  private slot: 'sidebar' | 'top' | null = null;
+  private slot: 'left_sidebar' | 'right_sidebar' | 'top' | null = null;
 
-  oninit(vnode: Mithril.Vnode<{ slot: 'sidebar' | 'top' }, this>) {
+  oninit(vnode: Mithril.Vnode<{ slot: 'left_sidebar' | 'right_sidebar' | 'top' }, this>) {
     super.oninit(vnode);
     this.slot = this.attrs?.slot || null;
     if (!this.slot) {
@@ -638,16 +666,17 @@ class AdvertisingSlotGrid extends Component<{ slot: 'sidebar' | 'top' }> {
       visibleEmptySlots += 1;
       return slot === 'top' || visibleEmptySlots <= VISIBLE_EMPTY_SLOT_LIMIT;
     });
-    const hiddenEmptySlots = slot === 'sidebar' ? Math.max(0, capacity - adsByPosition.size - VISIBLE_EMPTY_SLOT_LIMIT) : 0;
+    const hiddenEmptySlots = slot !== 'top' ? Math.max(0, capacity - adsByPosition.size - VISIBLE_EMPTY_SLOT_LIMIT) : 0;
+    const slotClass = slot.replace('_', '-');
 
     return (
-      <div className={`LowseekaiAdvertising-${slot}`}>
+      <div className={`LowseekaiAdvertising-${slotClass}`}>
         {slotItems.map(({ ad, position }) =>
           ad ? (
             <AdCard ad={ad} placement={slot} key={ad.id} />
           ) : (
             <a
-              className={`LowseekaiAdvertising-placeholder LowseekaiAdvertising-placeholder--${slot}`}
+              className={`LowseekaiAdvertising-placeholder LowseekaiAdvertising-placeholder--${slotClass}`}
               href={app.route('lowseekai-advertising.index')}
               title={app.translator.trans('lowseekai-advertising.forum.apply_slot')}
               aria-label={app.translator.trans('lowseekai-advertising.forum.apply_slot')}
@@ -658,7 +687,7 @@ class AdvertisingSlotGrid extends Component<{ slot: 'sidebar' | 'top' }> {
             </a>
           )
         )}
-        {slot === 'sidebar' && hiddenEmptySlots > 0 ? (
+        {slot !== 'top' && hiddenEmptySlots > 0 ? (
           <a className="LowseekaiAdvertising-viewAll" href={app.route('lowseekai-advertising.index')}>
             {app.translator.trans('lowseekai-advertising.forum.view_all_slots')}
           </a>
@@ -687,7 +716,8 @@ app.initializers.add('lowseekai/advertising/forum', () => {
   });
 
   extend(IndexPage.prototype, 'contentItems', (items: any) => {
-    items.add('lowseekai-advertising-right-rail', <AdvertisingSlotGrid slot="sidebar" />, 80);
+    items.add('lowseekai-advertising-left-rail', <AdvertisingSlotGrid slot="left_sidebar" />, 79);
+    items.add('lowseekai-advertising-right-rail', <AdvertisingSlotGrid slot="right_sidebar" />, 80);
   });
 
   extend(PageStructure.prototype, 'mainItems', (items: any) => {

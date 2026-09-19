@@ -28,7 +28,11 @@ class ListPublicAdsController implements RequestHandlerInterface
             return new JsonResponse(['data' => []]);
         }
 
-        $slot = (string) ($request->getQueryParams()['slot'] ?? '');
+        $slot = $this->settings->normalizeSlotKey((string) ($request->getQueryParams()['slot'] ?? ''));
+
+        if ($slot !== '' && ! array_key_exists($slot, AdvertisingSettings::SLOT_LABELS)) {
+            return new JsonResponse(['data' => [], 'meta' => ['slots' => $this->slotMeta()]]);
+        }
 
         if ($slot !== '' && ! $this->settings->slotEnabled($slot)) {
             return new JsonResponse(['data' => [], 'meta' => ['slots' => $this->slotMeta()]]);
@@ -73,7 +77,7 @@ class ListPublicAdsController implements RequestHandlerInterface
             ->all();
 
         return collect($this->settings->slots())->map(function (array $slot) use ($reserved) {
-            $reservedPositions = $reserved[$slot['key']] ?? [];
+            $reservedPositions = $reserved[$slot['key']] ?? ($slot['key'] === 'right_sidebar' ? ($reserved['sidebar'] ?? []) : []);
             $positions = [];
 
             for ($position = 1; $position <= $slot['capacity']; $position++) {

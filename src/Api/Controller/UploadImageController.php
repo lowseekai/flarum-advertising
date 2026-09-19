@@ -23,7 +23,10 @@ class UploadImageController implements RequestHandlerInterface
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $actor = RequestUtil::getActor($request);
-        if ($actor->isGuest() || ! $actor->hasPermission('lowseekai-advertising.submit')) {
+        if ($actor->isGuest() || (
+            ! $actor->hasPermission('lowseekai-advertising.submit')
+            && ! $actor->hasPermission('lowseekai-advertising.manage')
+        )) {
             throw new PermissionDeniedException();
         }
 

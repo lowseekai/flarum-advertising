@@ -24,7 +24,7 @@ class ListSlotAvailabilityController implements RequestHandlerInterface
             throw new PermissionDeniedException();
         }
 
-        $slot = (string) ($request->getQueryParams()['slot'] ?? 'sidebar');
+        $slot = $this->settings->normalizeSlotKey((string) ($request->getQueryParams()['slot'] ?? 'right_sidebar'));
         if (! array_key_exists($slot, AdvertisingSettings::SLOT_LABELS)) {
             return new JsonResponse(['errors' => [['detail' => '广告位无效。']]], 422);
         }

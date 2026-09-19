@@ -4,14 +4,23 @@ lowseekai-advertising:
     title: "Advertising"
     help: "Configure monthly slot prices and review user submissions."
     enabled: "Enable advertising purchases"
-    sidebar_enabled: "Enable sidebar advertising slots"
+    sidebar_enabled: "Enable right sidebar advertising slots (legacy compatibility)"
+    left_sidebar_enabled: "Enable left sidebar advertising slots"
+    right_sidebar_enabled: "Enable right sidebar advertising slots"
     top_enabled: "Enable top advertising slots"
-    sidebar_slots: "Number of sidebar slots"
+    sidebar_slots: "Number of sidebar slots (legacy compatibility)"
+    left_sidebar_slots: "Number of left sidebar slots"
+    right_sidebar_slots: "Number of right sidebar slots"
     top_slots: "Number of top slots"
     top_slots_fixed: "Top advertising slots are fixed at 4 and cannot be changed here."
-    sidebar_price: "Sidebar slot monthly price"
+    sidebar_price: "Sidebar slot monthly price (legacy compatibility)"
+    left_sidebar_price: "Left sidebar slot monthly price"
+    right_sidebar_price: "Right sidebar slot monthly price"
     top_price: "Top slot monthly price"
     renewal_enabled: "Enable advertisement renewal buttons"
+    auto_group_enabled: "Automatically grant a group after approval"
+    auto_group: "Automatically granted group"
+    select_group: "Select a group"
     max_image_size: "Maximum image size (KB)"
     currency_name: "Points name"
     currency_icon: "Points icon class"
@@ -29,6 +38,10 @@ lowseekai-advertising:
     restore: "Show again"
     save: "Save settings"
     saved: "Advertising settings saved."
+    edit: "Edit"
+    save_edit: "Save changes"
+    cancel_edit: "Cancel"
+    edited: "Advertisement updated."
     approved: "Advertisement approved and points charged."
     rejected: "Advertisement rejected."
     hidden: "Advertisement hidden."
@@ -44,6 +57,7 @@ lowseekai-advertising:
     permissions:
       submit: "Submit advertising campaigns"
       manage: "Manage and review advertising campaigns"
+      auto_group: "Configure approval auto-group"
   forum:
     title: "Advertising"
     nav: "Advertising"
@@ -53,7 +67,9 @@ lowseekai-advertising:
     apply_title: "Buy an advertising slot"
     apply_help: "Submissions are reviewed before display. Points are charged only after approval."
     slot: "Advertising slot"
-    sidebar: "Sidebar slot"
+    sidebar: "Right sidebar slot"
+    left_sidebar: "Left sidebar slot"
+    right_sidebar: "Right sidebar slot"
     top: "Top slot"
     position: "Slot position"
     position_option: "Position {position}"
@@ -95,7 +111,7 @@ lowseekai-advertising:
     notification_pending_label: "Advertising applications"
     notification_reviewed_label: "Advertising review results"
     notification_pending: "User {user} submitted an advertisement: {title}. Estimated cost: {price} points."
-    notification_approved: "Your advertisement “{title}” was approved. {price} points were charged. Slot: {slot}, expires: {endsAt}."
+    notification_approved: "Your advertisement “{title}” was approved. {price} points were charged. Slot: {slot}, position: {position}, starts: {startsAt}, expires: {endsAt}."
     notification_rejected: "Your advertisement “{title}” was rejected."
     notification_rejected_with_note: "Your advertisement “{title}” was rejected. Note: {note}"
   email:
@@ -116,6 +132,7 @@ lowseekai-advertising:
       approved_body: |
         Your advertisement “{title}” was approved and {price} points were charged.
         Slot: {slot}, position: {position}
+        Starts: {startsAt}
         Expires: {endsAt}
       rejected_body: |
         Your advertisement “{title}” was rejected.

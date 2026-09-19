@@ -67,10 +67,18 @@ return [
                 ->get(fn () => resolve(AdvertisingSettings::class)->enabled()),
             Schema\Boolean::make('lowseekaiAdvertisingSidebarEnabled')
                 ->get(fn () => resolve(AdvertisingSettings::class)->slotEnabled('sidebar')),
+            Schema\Boolean::make('lowseekaiAdvertisingLeftSidebarEnabled')
+                ->get(fn () => resolve(AdvertisingSettings::class)->slotEnabled('left_sidebar')),
+            Schema\Boolean::make('lowseekaiAdvertisingRightSidebarEnabled')
+                ->get(fn () => resolve(AdvertisingSettings::class)->slotEnabled('right_sidebar')),
             Schema\Boolean::make('lowseekaiAdvertisingTopEnabled')
                 ->get(fn () => resolve(AdvertisingSettings::class)->slotEnabled('top')),
             Schema\Integer::make('lowseekaiAdvertisingSidebarSlots')
                 ->get(fn () => resolve(AdvertisingSettings::class)->slotCount('sidebar')),
+            Schema\Integer::make('lowseekaiAdvertisingLeftSidebarSlots')
+                ->get(fn () => resolve(AdvertisingSettings::class)->slotCount('left_sidebar')),
+            Schema\Integer::make('lowseekaiAdvertisingRightSidebarSlots')
+                ->get(fn () => resolve(AdvertisingSettings::class)->slotCount('right_sidebar')),
             Schema\Integer::make('lowseekaiAdvertisingTopSlots')
                 ->get(fn () => resolve(AdvertisingSettings::class)->slotCount('top')),
             Schema\Str::make('lowseekaiAdvertisingCurrencyName')
@@ -87,6 +95,10 @@ return [
                 }),
             Schema\Integer::make('lowseekaiAdvertisingSidebarPricePerMonth')
                 ->get(fn () => resolve(AdvertisingSettings::class)->pricePerMonth('sidebar')),
+            Schema\Integer::make('lowseekaiAdvertisingLeftSidebarPricePerMonth')
+                ->get(fn () => resolve(AdvertisingSettings::class)->pricePerMonth('left_sidebar')),
+            Schema\Integer::make('lowseekaiAdvertisingRightSidebarPricePerMonth')
+                ->get(fn () => resolve(AdvertisingSettings::class)->pricePerMonth('right_sidebar')),
             Schema\Integer::make('lowseekaiAdvertisingTopPricePerMonth')
                 ->get(fn () => resolve(AdvertisingSettings::class)->pricePerMonth('top')),
             Schema\Arr::make('lowseekaiAdvertisingDurationPlans')
@@ -104,16 +116,27 @@ return [
     (new Extend\Settings())
         ->default('lowseekai-advertising.enabled', true)
         ->default('lowseekai-advertising.sidebar_enabled', true)
+        ->default('lowseekai-advertising.left_sidebar_enabled', false)
         ->default('lowseekai-advertising.top_enabled', true)
         ->default('lowseekai-advertising.sidebar_slots', 10)
+        ->default('lowseekai-advertising.left_sidebar_slots', 10)
         ->default('lowseekai-advertising.top_slots', 4)
         ->default('lowseekai-advertising.sidebar_price_per_month', 20)
+        ->default('lowseekai-advertising.left_sidebar_price_per_month', 20)
         ->default('lowseekai-advertising.top_price_per_month', 30)
         ->default('lowseekai-advertising.max_image_size_kb', 2048)
         ->default('lowseekai-advertising.currency_name', '积分')
         ->default('lowseekai-advertising.currency_icon', 'fas fa-coins')
-        ->default('lowseekai-advertising.renewal_enabled', true),
+        ->default('lowseekai-advertising.renewal_enabled', true)
+        ->default('lowseekai-advertising.auto_group_enabled', false),
 
     (new Extend\Policy())
         ->globalPolicy(Access\AdvertisingPolicy::class),
+
+    (new Extend\Conditional())
+        ->whenExtensionEnabled('flarum-audit', fn () => [
+            (new \Flarum\Audit\Extend\Audit())
+                ->group('lowseekai-advertising')
+                ->using(new AuditIntegration()),
+        ]),
 ];

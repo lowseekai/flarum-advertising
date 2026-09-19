@@ -18,6 +18,7 @@ class AdRepository
         protected PointsRepository $points,
         protected ConnectionInterface $db,
         protected AdvertisingNotifier $notifier,
+        protected AdvertisingAutoGroupManager $autoGroups,
     ) {
     }
 
@@ -120,6 +121,8 @@ class AdRepository
             return $renewed->fresh('user');
         });
 
+        $this->autoGroups->sync($updated);
+
         return $updated;
     }
 
@@ -190,6 +193,8 @@ class AdRepository
             $this->notifier->notifyReviewed($updated, $actor);
         }
 
+        $this->autoGroups->sync($updated);
+
         return $updated;
     }
 
@@ -206,6 +211,7 @@ class AdRepository
             $ad->status = 'expired';
             $ad->is_visible = false;
             $ad->save();
+            $this->autoGroups->sync($ad);
         }
 
         return $ads->count();
@@ -330,7 +336,7 @@ class AdRepository
 
     protected function normalizeSlotKey(mixed $value): string
     {
-        $slotKey = (string) $value;
+        $slotKey = $this->settings->normalizeSlotKey((string) $value);
 
         if (! array_key_exists($slotKey, AdvertisingSettings::SLOT_LABELS)) {
             throw new ValidationException(['slotKey' => '广告位无效。']);

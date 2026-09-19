@@ -19,8 +19,8 @@ class AdSerializer
         return [
             'id' => (int) $ad->id,
             'userId' => (int) $ad->user_id,
-            'slotKey' => (string) $ad->slot_key,
-            'slotLabel' => AdvertisingSettings::SLOT_LABELS[$ad->slot_key] ?? $ad->slot_key,
+            'slotKey' => $this->settings->normalizeSlotKey((string) $ad->slot_key),
+            'slotLabel' => AdvertisingSettings::SLOT_LABELS[$this->settings->normalizeSlotKey((string) $ad->slot_key)] ?? $ad->slot_key,
             'slotPosition' => $ad->slot_position !== null ? (int) $ad->slot_position : null,
             'title' => (string) $ad->title,
             'imagePath' => (string) $ad->image_path,

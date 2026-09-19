@@ -1,5 +1,5 @@
-<x-mail::plain.notification>
-<x-slot:body>
+{{ $blueprint->getEmailSubject($translator) }}
+
 {!! $translator->trans(
     $blueprint->ad->status === 'approved'
         ? 'lowseekai-advertising.email.reviewed.approved_body'
@@ -9,9 +9,8 @@
         '{price}' => $blueprint->ad->total_price,
         '{slot}' => $blueprint->getData()['slotLabel'],
         '{position}' => $blueprint->getData()['slotPosition'] ?: '未指定',
-        '{endsAt}' => $blueprint->getData()['endsAt'] ?: '无',
+        '{startsAt}' => $blueprint->getData()['startsAt'] ?: '审核通过后生成',
+        '{endsAt}' => $blueprint->getData()['endsAt'] ?: '审核通过后生成',
         '{note}' => $blueprint->ad->review_note ?: '无',
     ]
 ) !!}
-</x-slot:body>
-</x-mail::plain.notification>

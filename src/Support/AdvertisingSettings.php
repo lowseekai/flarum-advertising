@@ -9,10 +9,16 @@ use Flarum\Settings\SettingsRepositoryInterface;
 class AdvertisingSettings
 {
     public const KEY_ENABLED = 'lowseekai-advertising.enabled';
+    public const KEY_LEFT_SIDEBAR_ENABLED = 'lowseekai-advertising.left_sidebar_enabled';
+    public const KEY_RIGHT_SIDEBAR_ENABLED = 'lowseekai-advertising.right_sidebar_enabled';
     public const KEY_SIDEBAR_ENABLED = 'lowseekai-advertising.sidebar_enabled';
     public const KEY_TOP_ENABLED = 'lowseekai-advertising.top_enabled';
+    public const KEY_LEFT_SIDEBAR_SLOTS = 'lowseekai-advertising.left_sidebar_slots';
+    public const KEY_RIGHT_SIDEBAR_SLOTS = 'lowseekai-advertising.right_sidebar_slots';
     public const KEY_SIDEBAR_SLOTS = 'lowseekai-advertising.sidebar_slots';
     public const KEY_TOP_SLOTS = 'lowseekai-advertising.top_slots';
+    public const KEY_LEFT_SIDEBAR_PRICE = 'lowseekai-advertising.left_sidebar_price_per_month';
+    public const KEY_RIGHT_SIDEBAR_PRICE = 'lowseekai-advertising.right_sidebar_price_per_month';
     public const KEY_SIDEBAR_PRICE = 'lowseekai-advertising.sidebar_price_per_month';
     public const KEY_TOP_PRICE = 'lowseekai-advertising.top_price_per_month';
     public const LEGACY_KEY_SIDEBAR_PRICE = 'lowseekai-advertising.sidebar_price_per_day';
@@ -21,12 +27,15 @@ class AdvertisingSettings
     public const KEY_CURRENCY_NAME = 'lowseekai-advertising.currency_name';
     public const KEY_CURRENCY_ICON = 'lowseekai-advertising.currency_icon';
     public const KEY_RENEWAL_ENABLED = 'lowseekai-advertising.renewal_enabled';
+    public const KEY_AUTO_GROUP_ENABLED = 'lowseekai-advertising.auto_group_enabled';
+    public const KEY_AUTO_GROUP_ID = 'lowseekai-advertising.auto_group_id';
 
     public const TOP_SLOT_COUNT = 4;
 
     public const SLOT_LABELS = [
-        'sidebar' => '侧栏广告位',
         'top' => '顶部广告位',
+        'left_sidebar' => '左侧栏广告位',
+        'right_sidebar' => '右侧栏广告位',
     ];
 
     public const DURATION_PLANS = [
@@ -61,25 +70,62 @@ class AdvertisingSettings
         return filter_var($this->settings->get(self::KEY_ENABLED, true), FILTER_VALIDATE_BOOLEAN);
     }
 
+    public function normalizeSlotKey(string $slotKey): string
+    {
+        return $slotKey === 'sidebar' ? 'right_sidebar' : $slotKey;
+    }
+
+    public static function slotLabel(string $slotKey): string
+    {
+        $normalized = $slotKey === 'sidebar' ? 'right_sidebar' : $slotKey;
+
+        return self::SLOT_LABELS[$normalized] ?? $slotKey;
+    }
+
     public function slotEnabled(string $slotKey): bool
     {
+        $slotKey = $this->normalizeSlotKey($slotKey);
+
         return match ($slotKey) {
             'top' => filter_var($this->settings->get(self::KEY_TOP_ENABLED, true), FILTER_VALIDATE_BOOLEAN),
-            default => filter_var($this->settings->get(self::KEY_SIDEBAR_ENABLED, true), FILTER_VALIDATE_BOOLEAN),
+            'left_sidebar' => filter_var($this->settings->get(self::KEY_LEFT_SIDEBAR_ENABLED, false), FILTER_VALIDATE_BOOLEAN),
+            default => filter_var(
+                $this->settingWithLegacyFallback(self::KEY_RIGHT_SIDEBAR_ENABLED, self::KEY_SIDEBAR_ENABLED, true),
+                FILTER_VALIDATE_BOOLEAN
+            ),
         };
     }
 
     public function slotCount(string $slotKey): int
     {
+        $slotKey = $this->normalizeSlotKey($slotKey);
+
         return match ($slotKey) {
             'top' => self::TOP_SLOT_COUNT,
-            default => max(1, min(50, (int) $this->settings->get(self::KEY_SIDEBAR_SLOTS, 10))),
+            'left_sidebar' => max(1, min(50, (int) $this->settings->get(self::KEY_LEFT_SIDEBAR_SLOTS, 10))),
+            default => max(
+                1,
+                min(50, (int) $this->settingWithLegacyFallback(self::KEY_RIGHT_SIDEBAR_SLOTS, self::KEY_SIDEBAR_SLOTS, 10))
+            ),
         };
     }
 
     public function renewalEnabled(): bool
     {
         return filter_var($this->settings->get(self::KEY_RENEWAL_ENABLED, true), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    public function autoGroupEnabled(): bool
+    {
+        return filter_var($this->settings->get(self::KEY_AUTO_GROUP_ENABLED, false), FILTER_VALIDATE_BOOLEAN)
+            && $this->autoGroupId() !== null;
+    }
+
+    public function autoGroupId(): ?int
+    {
+        $value = $this->settings->get(self::KEY_AUTO_GROUP_ID);
+
+        return $value !== null && (int) $value > 0 ? (int) $value : null;
     }
 
     public function maxImageSizeKb(): int
@@ -89,13 +135,18 @@ class AdvertisingSettings
 
     public function pricePerMonth(string $slotKey): int
     {
+        $slotKey = $this->normalizeSlotKey($slotKey);
+
         return match ($slotKey) {
             'top' => max(0, (int) $this->settingWithLegacyFallback(self::KEY_TOP_PRICE, self::LEGACY_KEY_TOP_PRICE, 30)),
-            default => max(0, (int) $this->settingWithLegacyFallback(self::KEY_SIDEBAR_PRICE, self::LEGACY_KEY_SIDEBAR_PRICE, 20)),
+            'left_sidebar' => max(0, (int) $this->settings->get(self::KEY_LEFT_SIDEBAR_PRICE, 20)),
+            default => max(
+                0,
+                (int) $this->settingWithLegacyFallback(self::KEY_RIGHT_SIDEBAR_PRICE, self::KEY_SIDEBAR_PRICE, 20)
+            ),
         };
     }
 
-    // Compatibility alias for older request payloads and the historical DB column name.
     public function pricePerDay(string $slotKey): int
     {
         return $this->pricePerMonth($slotKey);

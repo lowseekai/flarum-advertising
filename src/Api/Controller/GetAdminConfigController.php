@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Lowseekai\Advertising\Api\Controller;
 
 use Flarum\Http\RequestUtil;
+use Flarum\Group\Group;
 use Flarum\User\Exception\PermissionDeniedException;
 use Laminas\Diactoros\Response\JsonResponse;
 use Lowseekai\Advertising\Support\AdvertisingSettings;
@@ -31,16 +32,34 @@ class GetAdminConfigController implements RequestHandlerInterface
         return [
             'enabled' => $this->settings->enabled(),
             'sidebarEnabled' => $this->settings->slotEnabled('sidebar'),
+            'leftSidebarEnabled' => $this->settings->slotEnabled('left_sidebar'),
+            'rightSidebarEnabled' => $this->settings->slotEnabled('right_sidebar'),
             'topEnabled' => $this->settings->slotEnabled('top'),
             'sidebarSlots' => $this->settings->slotCount('sidebar'),
+            'leftSidebarSlots' => $this->settings->slotCount('left_sidebar'),
+            'rightSidebarSlots' => $this->settings->slotCount('right_sidebar'),
             'topSlots' => $this->settings->slotCount('top'),
             'sidebarPricePerMonth' => $this->settings->pricePerMonth('sidebar'),
+            'leftSidebarPricePerMonth' => $this->settings->pricePerMonth('left_sidebar'),
+            'rightSidebarPricePerMonth' => $this->settings->pricePerMonth('right_sidebar'),
             'topPricePerMonth' => $this->settings->pricePerMonth('top'),
             'durationPlans' => $this->settings->durationPlans(),
             'maxImageSizeKb' => $this->settings->maxImageSizeKb(),
             'currencyName' => $this->settings->currencyName(),
             'currencyIcon' => $this->settings->currencyIcon(),
             'renewalEnabled' => $this->settings->renewalEnabled(),
+            'autoGroupEnabled' => $this->settings->autoGroupEnabled(),
+            'autoGroupId' => $this->settings->autoGroupId(),
+            'groups' => Group::query()
+                ->where('id', '<>', Group::GUEST_ID)
+                ->orderBy('name_plural')
+                ->get(['id', 'name_singular', 'name_plural'])
+                ->map(fn (Group $group) => [
+                    'id' => (int) $group->id,
+                    'name' => (string) ($group->name_plural ?: $group->name_singular),
+                ])
+                ->values()
+                ->all(),
         ];
     }
 }
