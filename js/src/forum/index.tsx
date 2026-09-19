@@ -720,12 +720,14 @@ app.initializers.add('lowseekai/advertising/forum', () => {
     });
   });
 
-  extend(IndexSidebar.prototype, 'view', (vnode: any) => {
-    if (!vnode || app.current?.get('routeName') !== 'index') return;
+  extend(IndexSidebar.prototype, 'items', (items: any) => {
+    if (app.current?.get('routeName') !== 'index') return;
 
-    const children = Array.isArray(vnode.children) ? vnode.children : [vnode.children];
-    children.push(<AdvertisingSlotGrid slot="left_sidebar" />);
-    vnode.children = children;
+    items.add(
+      'lowseekai-advertising-left-sidebar',
+      <AdvertisingSlotGrid slot="left_sidebar" />,
+      -1000
+    );
   });
 
   extend(IndexPage.prototype, 'contentItems', (items: any) => {
