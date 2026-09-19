@@ -17,6 +17,8 @@ class AdvertisingSettings
     public const KEY_RIGHT_SIDEBAR_SLOTS = 'lowseekai-advertising.right_sidebar_slots';
     public const KEY_SIDEBAR_SLOTS = 'lowseekai-advertising.sidebar_slots';
     public const KEY_TOP_SLOTS = 'lowseekai-advertising.top_slots';
+    public const KEY_LEFT_SIDEBAR_DISPLAY_SLOTS = 'lowseekai-advertising.left_sidebar_display_slots';
+    public const KEY_RIGHT_SIDEBAR_DISPLAY_SLOTS = 'lowseekai-advertising.right_sidebar_display_slots';
     public const KEY_LEFT_SIDEBAR_PRICE = 'lowseekai-advertising.left_sidebar_price_per_month';
     public const KEY_RIGHT_SIDEBAR_PRICE = 'lowseekai-advertising.right_sidebar_price_per_month';
     public const KEY_SIDEBAR_PRICE = 'lowseekai-advertising.sidebar_price_per_month';
@@ -110,6 +112,17 @@ class AdvertisingSettings
         };
     }
 
+    public function displaySlotCount(string $slotKey): int
+    {
+        $slotKey = $this->normalizeSlotKey($slotKey);
+
+        return match ($slotKey) {
+            'top' => self::TOP_SLOT_COUNT,
+            'left_sidebar' => max(1, min(50, (int) $this->settings->get(self::KEY_LEFT_SIDEBAR_DISPLAY_SLOTS, 3))),
+            default => max(1, min(50, (int) $this->settings->get(self::KEY_RIGHT_SIDEBAR_DISPLAY_SLOTS, 3))),
+        };
+    }
+
     public function renewalEnabled(): bool
     {
         return filter_var($this->settings->get(self::KEY_RENEWAL_ENABLED, true), FILTER_VALIDATE_BOOLEAN);
@@ -173,6 +186,7 @@ class AdvertisingSettings
             'label' => $label,
             'enabled' => $this->slotEnabled($key),
             'capacity' => $this->slotCount($key),
+            'displayCount' => $this->displaySlotCount($key),
             'pricePerMonth' => $this->pricePerMonth($key),
         ], array_keys(self::SLOT_LABELS), array_values(self::SLOT_LABELS));
     }

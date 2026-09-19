@@ -46,61 +46,30 @@
   text-align: center;
 }
 
-.IndexPage .Page-content:has(> .LowseekaiAdvertising-left-sidebar):has(> .LowseekaiAdvertising-right-sidebar) {
+.IndexPage .Page-content:has(> .LowseekaiAdvertising-right-sidebar) {
   display: grid;
-  grid-template-columns: 180px minmax(0, 1fr) 180px;
+  grid-template-columns: minmax(0, 1fr) 180px;
   column-gap: 30px;
+  row-gap: 0;
   align-items: start;
 }
 
-.IndexPage .Page-content:has(> .LowseekaiAdvertising-left-sidebar):has(> .LowseekaiAdvertising-right-sidebar),
-.IndexPage .Page-content:has(> .LowseekaiAdvertising-left-sidebar):not(:has(> .LowseekaiAdvertising-right-sidebar)),
-.IndexPage .Page-content:has(> .LowseekaiAdvertising-right-sidebar):not(:has(> .LowseekaiAdvertising-left-sidebar)) {
-  row-gap: 0;
-}
-
-.IndexPage .Page-content:has(> .LowseekaiAdvertising-left-sidebar):has(> .LowseekaiAdvertising-right-sidebar) > .IndexPage-toolbar,
-.IndexPage .Page-content:has(> .LowseekaiAdvertising-left-sidebar):not(:has(> .LowseekaiAdvertising-right-sidebar)) > .IndexPage-toolbar,
-.IndexPage .Page-content:has(> .LowseekaiAdvertising-right-sidebar):not(:has(> .LowseekaiAdvertising-left-sidebar)) > .IndexPage-toolbar {
+.IndexPage .Page-content:has(> .LowseekaiAdvertising-right-sidebar) > .IndexPage-toolbar {
   grid-column: ~"1 / -1";
 }
 
-.IndexPage .Page-content:has(> .LowseekaiAdvertising-left-sidebar):has(> .LowseekaiAdvertising-right-sidebar) > .DiscussionList {
-  grid-column: 2;
-  grid-row: 2;
-}
-
-.IndexPage .Page-content:has(> .LowseekaiAdvertising-right-sidebar):not(:has(> .LowseekaiAdvertising-left-sidebar)) {
-  grid-template-columns: minmax(0, 1fr) 180px;
-}
-
-.IndexPage .Page-content:has(> .LowseekaiAdvertising-left-sidebar):not(:has(> .LowseekaiAdvertising-right-sidebar)) {
-  grid-template-columns: 180px minmax(0, 1fr);
-}
-
-.IndexPage .Page-content:has(> .LowseekaiAdvertising-left-sidebar):has(> .LowseekaiAdvertising-right-sidebar) > .DiscussionList,
-.IndexPage .Page-content:has(> .LowseekaiAdvertising-right-sidebar):not(:has(> .LowseekaiAdvertising-left-sidebar)) > .DiscussionList {
-  grid-column: 2;
-  grid-row: 2;
-}
-
-.IndexPage .Page-content:has(> .LowseekaiAdvertising-left-sidebar):not(:has(> .LowseekaiAdvertising-right-sidebar)) > .DiscussionList {
-  grid-column: 2;
-  grid-row: 2;
-}
-
-.LowseekaiAdvertising-left-sidebar {
+.IndexPage .Page-content:has(> .LowseekaiAdvertising-right-sidebar) > .DiscussionList {
   grid-column: 1;
   grid-row: 2;
 }
 
 .LowseekaiAdvertising-right-sidebar {
-  grid-column: 3;
+  grid-column: 2;
   grid-row: 2;
 }
 
-.IndexPage .Page-content:has(> .LowseekaiAdvertising-right-sidebar):not(:has(> .LowseekaiAdvertising-left-sidebar)) .LowseekaiAdvertising-right-sidebar {
-  grid-column: 2;
+.IndexPage-nav > .LowseekaiAdvertising-left-sidebar {
+  margin-top: 16px;
 }
 
 .Page-main:has(> .LowseekaiAdvertising-top-container) > .Page-container > .Page-sidebar,
@@ -300,7 +269,6 @@
 }
 
 @media (max-width: 768px) {
-  .IndexPage .Page-content:has(> .LowseekaiAdvertising-left-sidebar),
   .IndexPage .Page-content:has(> .LowseekaiAdvertising-right-sidebar) {
     display: block;
   }

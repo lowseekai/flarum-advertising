@@ -38,6 +38,8 @@ class GetAdminConfigController implements RequestHandlerInterface
             'sidebarSlots' => $this->settings->slotCount('sidebar'),
             'leftSidebarSlots' => $this->settings->slotCount('left_sidebar'),
             'rightSidebarSlots' => $this->settings->slotCount('right_sidebar'),
+            'leftSidebarDisplaySlots' => $this->settings->displaySlotCount('left_sidebar'),
+            'rightSidebarDisplaySlots' => $this->settings->displaySlotCount('right_sidebar'),
             'topSlots' => $this->settings->slotCount('top'),
             'sidebarPricePerMonth' => $this->settings->pricePerMonth('sidebar'),
             'leftSidebarPricePerMonth' => $this->settings->pricePerMonth('left_sidebar'),

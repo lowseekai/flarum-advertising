@@ -33,6 +33,8 @@ type Config = {
   sidebarSlots: number;
   leftSidebarSlots: number;
   rightSidebarSlots: number;
+  leftSidebarDisplaySlots: number;
+  rightSidebarDisplaySlots: number;
   topSlots: number;
   sidebarPricePerMonth: number;
   leftSidebarPricePerMonth: number;
@@ -56,6 +58,8 @@ const DEFAULT_CONFIG: Config = {
   sidebarSlots: 10,
   leftSidebarSlots: 10,
   rightSidebarSlots: 10,
+  leftSidebarDisplaySlots: 3,
+  rightSidebarDisplaySlots: 3,
   topSlots: 4,
   sidebarPricePerMonth: 20,
   leftSidebarPricePerMonth: 20,
@@ -212,7 +216,10 @@ class AdvertisingSettingsPage extends ExtensionPage {
           </Switch>
         </div>
         {this.numberField('leftSidebarSlots', 'lowseekai-advertising.admin.left_sidebar_slots', 1, 50)}
+        {this.numberField('leftSidebarDisplaySlots', 'lowseekai-advertising.admin.left_sidebar_display_slots', 1, 50)}
         {this.numberField('rightSidebarSlots', 'lowseekai-advertising.admin.right_sidebar_slots', 1, 50)}
+        {this.numberField('rightSidebarDisplaySlots', 'lowseekai-advertising.admin.right_sidebar_display_slots', 1, 50)}
+        <p className="helpText">{app.translator.trans('lowseekai-advertising.admin.sidebar_display_slots_help')}</p>
         <p className="helpText">{app.translator.trans('lowseekai-advertising.admin.top_slots_fixed')}</p>
         {this.numberField('leftSidebarPricePerMonth', 'lowseekai-advertising.admin.left_sidebar_price', 0)}
         {this.numberField('rightSidebarPricePerMonth', 'lowseekai-advertising.admin.right_sidebar_price', 0)}
@@ -260,7 +267,19 @@ class AdvertisingSettingsPage extends ExtensionPage {
   }
 
   numberField(
-    key: keyof Pick<Config, 'sidebarSlots' | 'leftSidebarSlots' | 'rightSidebarSlots' | 'sidebarPricePerMonth' | 'leftSidebarPricePerMonth' | 'rightSidebarPricePerMonth' | 'topPricePerMonth' | 'maxImageSizeKb'>,
+    key: keyof Pick<
+      Config,
+      | 'sidebarSlots'
+      | 'leftSidebarSlots'
+      | 'rightSidebarSlots'
+      | 'leftSidebarDisplaySlots'
+      | 'rightSidebarDisplaySlots'
+      | 'sidebarPricePerMonth'
+      | 'leftSidebarPricePerMonth'
+      | 'rightSidebarPricePerMonth'
+      | 'topPricePerMonth'
+      | 'maxImageSizeKb'
+    >,
     labelKey: string,
     min: number,
     max?: number

@@ -79,6 +79,10 @@ return [
                 ->get(fn () => resolve(AdvertisingSettings::class)->slotCount('left_sidebar')),
             Schema\Integer::make('lowseekaiAdvertisingRightSidebarSlots')
                 ->get(fn () => resolve(AdvertisingSettings::class)->slotCount('right_sidebar')),
+            Schema\Integer::make('lowseekaiAdvertisingLeftSidebarDisplaySlots')
+                ->get(fn () => resolve(AdvertisingSettings::class)->displaySlotCount('left_sidebar')),
+            Schema\Integer::make('lowseekaiAdvertisingRightSidebarDisplaySlots')
+                ->get(fn () => resolve(AdvertisingSettings::class)->displaySlotCount('right_sidebar')),
             Schema\Integer::make('lowseekaiAdvertisingTopSlots')
                 ->get(fn () => resolve(AdvertisingSettings::class)->slotCount('top')),
             Schema\Str::make('lowseekaiAdvertisingCurrencyName')
@@ -120,6 +124,8 @@ return [
         ->default('lowseekai-advertising.top_enabled', true)
         ->default('lowseekai-advertising.sidebar_slots', 10)
         ->default('lowseekai-advertising.left_sidebar_slots', 10)
+        ->default('lowseekai-advertising.left_sidebar_display_slots', 3)
+        ->default('lowseekai-advertising.right_sidebar_display_slots', 3)
         ->default('lowseekai-advertising.top_slots', 4)
         ->default('lowseekai-advertising.sidebar_price_per_month', 20)
         ->default('lowseekai-advertising.left_sidebar_price_per_month', 20)

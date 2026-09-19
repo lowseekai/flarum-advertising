@@ -20,6 +20,7 @@ type SlotConfig = {
   label: string;
   enabled: boolean;
   capacity: number;
+  displayCount?: number;
   pricePerMonth: number;
   positions?: SlotPosition[];
 };
@@ -51,7 +52,6 @@ type AdvertisingNotificationData = {
   endsAt?: string | null;
 };
 
-const VISIBLE_EMPTY_SLOT_LIMIT = 3;
 const TOP_SLOT_COUNT = 4;
 
 const DEFAULT_PLANS: DurationPlan[] = [
@@ -68,6 +68,7 @@ function fallbackSlots(): SlotConfig[] {
       label: '顶部广告位',
       enabled: Boolean(app.forum.attribute('lowseekaiAdvertisingTopEnabled') ?? true),
       capacity: TOP_SLOT_COUNT,
+      displayCount: TOP_SLOT_COUNT,
       pricePerMonth: Number(app.forum.attribute('lowseekaiAdvertisingTopPricePerMonth') || 0),
     },
     {
@@ -75,6 +76,7 @@ function fallbackSlots(): SlotConfig[] {
       label: '左侧栏广告位',
       enabled: Boolean(app.forum.attribute('lowseekaiAdvertisingLeftSidebarEnabled') ?? false),
       capacity: Number(app.forum.attribute('lowseekaiAdvertisingLeftSidebarSlots') || 10),
+      displayCount: Number(app.forum.attribute('lowseekaiAdvertisingLeftSidebarDisplaySlots') || 3),
       pricePerMonth: Number(app.forum.attribute('lowseekaiAdvertisingLeftSidebarPricePerMonth') || 0),
     },
     {
@@ -90,6 +92,7 @@ function fallbackSlots(): SlotConfig[] {
           app.forum.attribute('lowseekaiAdvertisingSidebarSlots') ||
           10
       ),
+      displayCount: Number(app.forum.attribute('lowseekaiAdvertisingRightSidebarDisplaySlots') || 3),
       pricePerMonth: Number(
         app.forum.attribute('lowseekaiAdvertisingRightSidebarPricePerMonth') ||
           app.forum.attribute('lowseekaiAdvertisingSidebarPricePerMonth') ||
@@ -654,6 +657,8 @@ class AdvertisingSlotGrid extends Component<{ slot: 'left_sidebar' | 'right_side
       }
     });
 
+    const visibleEmptySlotLimit =
+      slot === 'top' ? capacity : Math.max(1, Math.min(capacity, Number(this.config.displayCount) || 3));
     let visibleEmptySlots = 0;
     const slotItems = Array.from({ length: capacity }, (_, index) => {
       const position = index + 1;
@@ -664,9 +669,9 @@ class AdvertisingSlotGrid extends Component<{ slot: 'left_sidebar' | 'right_side
       if (ad) return true;
 
       visibleEmptySlots += 1;
-      return slot === 'top' || visibleEmptySlots <= VISIBLE_EMPTY_SLOT_LIMIT;
+      return slot === 'top' || visibleEmptySlots <= visibleEmptySlotLimit;
     });
-    const hiddenEmptySlots = slot !== 'top' ? Math.max(0, capacity - adsByPosition.size - VISIBLE_EMPTY_SLOT_LIMIT) : 0;
+    const hiddenEmptySlots = slot !== 'top' ? Math.max(0, capacity - adsByPosition.size - visibleEmptySlotLimit) : 0;
     const slotClass = slot.replace('_', '-');
 
     return (
@@ -715,8 +720,15 @@ app.initializers.add('lowseekai/advertising/forum', () => {
     });
   });
 
+  extend(IndexSidebar.prototype, 'view', (vnode: any) => {
+    if (!vnode || app.current?.get('routeName') !== 'index') return;
+
+    const children = Array.isArray(vnode.children) ? vnode.children : [vnode.children];
+    children.push(<AdvertisingSlotGrid slot="left_sidebar" />);
+    vnode.children = children;
+  });
+
   extend(IndexPage.prototype, 'contentItems', (items: any) => {
-    items.add('lowseekai-advertising-left-rail', <AdvertisingSlotGrid slot="left_sidebar" />, 79);
     items.add('lowseekai-advertising-right-rail', <AdvertisingSlotGrid slot="right_sidebar" />, 80);
   });
 
