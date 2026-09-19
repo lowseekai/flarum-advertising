@@ -731,6 +731,7 @@ app.initializers.add('lowseekai/advertising/forum', () => {
   });
 
   extend(IndexPage.prototype, 'contentItems', (items: any) => {
+    if (app.current?.get('routeName') !== 'index') return;
     items.add('lowseekai-advertising-right-rail', <AdvertisingSlotGrid slot="right_sidebar" />, 80);
   });
 
