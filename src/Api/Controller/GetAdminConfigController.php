@@ -50,6 +50,7 @@ class GetAdminConfigController implements RequestHandlerInterface
             'currencyName' => $this->settings->currencyName(),
             'currencyIcon' => $this->settings->currencyIcon(),
             'renewalEnabled' => $this->settings->renewalEnabled(),
+            'autoRenewalEnabled' => $this->settings->autoRenewalEnabled(),
             'autoGroupEnabled' => $this->settings->autoGroupEnabled(),
             'autoGroupId' => $this->settings->autoGroupId(),
             'groups' => Group::query()

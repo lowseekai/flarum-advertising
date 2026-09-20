@@ -4,6 +4,7 @@ import Page from 'flarum/common/components/Page';
 import Component from 'flarum/common/Component';
 import Button from 'flarum/common/components/Button';
 import LinkButton from 'flarum/common/components/LinkButton';
+import Modal, { IInternalModalAttrs } from 'flarum/common/components/Modal';
 import Notification from 'flarum/forum/components/Notification';
 import IndexPage from 'flarum/forum/components/IndexPage';
 import IndexSidebar from 'flarum/forum/components/IndexSidebar';
@@ -36,6 +37,13 @@ type AdRecord = {
   totalPrice: number;
   renewalPrice: number;
   status: string;
+  autoRenewEnabled: boolean;
+  autoRenewStatus: string;
+  autoRenewPrice?: number | null;
+  autoRenewLastAttemptAt?: string | null;
+  autoRenewFailureReason?: string | null;
+  autoRenewDisabledAt?: string | null;
+  nextAutoRenewAt?: string | null;
   reviewNote?: string | null;
   startsAt?: string | null;
   endsAt?: string | null;
@@ -50,6 +58,9 @@ type AdvertisingNotificationData = {
   position?: number | null;
   startsAt?: string | null;
   endsAt?: string | null;
+  event?: string;
+  amount?: number;
+  reason?: string;
 };
 
 const TOP_SLOT_COUNT = 4;
@@ -88,20 +99,12 @@ function fallbackSlots(): SlotConfig[] {
       key: 'right_sidebar',
       label: '右侧栏广告位',
       enabled: Boolean(
-        app.forum.attribute('lowseekaiAdvertisingRightSidebarEnabled') ??
-          app.forum.attribute('lowseekaiAdvertisingSidebarEnabled') ??
-          true
+        app.forum.attribute('lowseekaiAdvertisingRightSidebarEnabled') ?? app.forum.attribute('lowseekaiAdvertisingSidebarEnabled') ?? true
       ),
-      capacity: Number(
-        app.forum.attribute('lowseekaiAdvertisingRightSidebarSlots') ||
-          app.forum.attribute('lowseekaiAdvertisingSidebarSlots') ||
-          10
-      ),
+      capacity: Number(app.forum.attribute('lowseekaiAdvertisingRightSidebarSlots') || app.forum.attribute('lowseekaiAdvertisingSidebarSlots') || 10),
       displayCount: Number(app.forum.attribute('lowseekaiAdvertisingRightSidebarDisplaySlots') || 3),
       pricePerMonth: Number(
-        app.forum.attribute('lowseekaiAdvertisingRightSidebarPricePerMonth') ||
-          app.forum.attribute('lowseekaiAdvertisingSidebarPricePerMonth') ||
-          0
+        app.forum.attribute('lowseekaiAdvertisingRightSidebarPricePerMonth') || app.forum.attribute('lowseekaiAdvertisingSidebarPricePerMonth') || 0
       ),
     },
   ];
@@ -187,6 +190,122 @@ class AdReviewedNotification extends Notification {
   }
 }
 
+type AutoRenewalModalAttrs = IInternalModalAttrs & {
+  titleText: string;
+  slotLabel: string;
+  slotPosition: number;
+  durationLabel: string;
+  price: number;
+  onConfirm: () => void;
+  onSubmitOnly: () => void;
+};
+
+class AutoRenewalConfirmationModal extends Modal<AutoRenewalModalAttrs> {
+  className() {
+    return 'LowseekaiAdvertisingAutoRenewalModal Modal--small';
+  }
+
+  title() {
+    return app.translator.trans('lowseekai-advertising.forum.auto_renewal_confirm_title');
+  }
+
+  content() {
+    const attrs = this.attrs;
+    const currency = app.forum.attribute('lowseekaiAdvertisingCurrencyName') || '积分';
+
+    return (
+      <div className="Modal-body">
+        <p>
+          {app.translator.trans('lowseekai-advertising.forum.auto_renewal_confirm_body', {
+            title: attrs.titleText,
+            price: attrs.price,
+            duration: attrs.durationLabel,
+            timing: app.translator.trans('lowseekai-advertising.forum.auto_renewal_timing'),
+          })}
+        </p>
+        <dl className="LowseekaiAdvertising-autoRenewalSummary">
+          <dt>{app.translator.trans('lowseekai-advertising.forum.slot')}</dt>
+          <dd>
+            {attrs.slotLabel} · {app.translator.trans('lowseekai-advertising.forum.position_option', { position: attrs.slotPosition })}
+          </dd>
+          <dt>{app.translator.trans('lowseekai-advertising.forum.duration')}</dt>
+          <dd>{attrs.durationLabel}</dd>
+          <dt>{app.translator.trans('lowseekai-advertising.forum.auto_renewal_price')}</dt>
+          <dd>
+            {attrs.price} {currency}
+          </dd>
+        </dl>
+        <div className="Form-controls">
+          <Button
+            className="Button Button--primary"
+            icon="fas fa-sync-alt"
+            onclick={() => {
+              this.hide();
+              attrs.onConfirm();
+            }}
+          >
+            {app.translator.trans('lowseekai-advertising.forum.auto_renewal_confirm')}
+          </Button>
+          <Button
+            className="Button Button--secondary"
+            icon="fas fa-paper-plane"
+            onclick={() => {
+              this.hide();
+              attrs.onSubmitOnly();
+            }}
+          >
+            {app.translator.trans('lowseekai-advertising.forum.auto_renewal_submit_only')}
+          </Button>
+          <Button className="Button Button--link" icon="fas fa-times" onclick={() => this.hide()}>
+            {app.translator.trans('lowseekai-advertising.forum.auto_renewal_cancel')}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+}
+
+class AdAutoRenewalNotification extends Notification {
+  icon() {
+    const data = this.attrs.notification.content<AdvertisingNotificationData>() || {};
+
+    return data.event === 'enabled'
+      ? 'fas fa-check-circle'
+      : data.event === 'succeeded'
+      ? 'fas fa-sync-alt'
+      : data.event === 'failed'
+      ? 'fas fa-exclamation-circle'
+      : 'fas fa-pause-circle';
+  }
+
+  href() {
+    return app.route('lowseekai-advertising.index');
+  }
+
+  content() {
+    const data = this.attrs.notification.content<AdvertisingNotificationData>() || {};
+    const key =
+      data.event === 'enabled'
+        ? 'lowseekai-advertising.forum.notification_auto_renewal_enabled'
+        : data.event === 'succeeded'
+        ? 'lowseekai-advertising.forum.notification_auto_renewal_succeeded'
+        : data.event === 'price_changed'
+        ? 'lowseekai-advertising.forum.notification_auto_renewal_price_changed'
+        : 'lowseekai-advertising.forum.notification_auto_renewal_failed';
+
+    return app.translator.trans(key, {
+      title: data.title || '',
+      amount: data.amount || 0,
+      endsAt: data.endsAt || '',
+      reason: data.reason || '',
+    });
+  }
+
+  excerpt() {
+    return null;
+  }
+}
+
 class AdvertisingPage extends Page {
   private ads: AdRecord[] = [];
   private myAds: AdRecord[] = [];
@@ -199,7 +318,15 @@ class AdvertisingPage extends Page {
   private uploadedFileName = '';
   private fileInput: HTMLInputElement | null = null;
   private refreshTimer: number | null = null;
-  private form = { slotKey: 'right_sidebar', slotPosition: 1, title: '', targetUrl: '', durationPlan: '1_month' };
+  private autoRenewingAd: number | null = null;
+  private form = {
+    slotKey: 'right_sidebar',
+    slotPosition: 1,
+    title: '',
+    targetUrl: '',
+    durationPlan: '1_month',
+    autoRenewEnabled: false,
+  };
 
   oninit(vnode: Mithril.Vnode) {
     super.oninit(vnode);
@@ -444,6 +571,19 @@ class AdvertisingPage extends Page {
             <p className="helpText LowseekaiAdvertising-insufficient">{app.translator.trans('lowseekai-advertising.forum.insufficient_points')}</p>
           ) : null}
         </div>
+        {app.forum.attribute('lowseekaiAdvertisingAutoRenewalEnabled') ? (
+          <div className="Form-group">
+            <label className="Checkbox">
+              <input
+                type="checkbox"
+                checked={this.form.autoRenewEnabled}
+                onchange={(event: any) => (this.form.autoRenewEnabled = event.target.checked)}
+              />{' '}
+              {app.translator.trans('lowseekai-advertising.forum.auto_renewal')}
+            </label>
+            <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.auto_renewal_help')}</p>
+          </div>
+        ) : null}
         <Button
           className="Button Button--primary"
           icon="fas fa-paper-plane"
@@ -479,6 +619,17 @@ class AdvertisingPage extends Page {
                   <span>{app.translator.trans('lowseekai-advertising.forum.starts_at', { date: this.formatDate(ad.startsAt) })}</span>
                 ) : null}
                 {ad.endsAt ? <span>{app.translator.trans('lowseekai-advertising.forum.ends_at', { date: this.formatDate(ad.endsAt) })}</span> : null}
+                {ad.status === 'approved' && ad.autoRenewStatus ? (
+                  <span className="LowseekaiAdvertising-autoRenewalStatus">
+                    {this.autoRenewalStatusLabel(ad.autoRenewStatus)}
+                    {ad.autoRenewPrice ? ` · ${ad.autoRenewPrice} ${app.forum.attribute('lowseekaiAdvertisingCurrencyName') || '积分'}` : ''}
+                    {ad.autoRenewLastAttemptAt
+                      ? ` · ${app.translator.trans('lowseekai-advertising.forum.auto_renewal_last_attempt', {
+                          date: this.formatDate(ad.autoRenewLastAttemptAt),
+                        })}`
+                      : ''}
+                  </span>
+                ) : null}
                 {ad.status === 'approved' && app.forum.attribute('lowseekaiAdvertisingRenewalEnabled') ? (
                   <Button
                     type="button"
@@ -489,6 +640,20 @@ class AdvertisingPage extends Page {
                     onclick={() => this.renew(ad)}
                   >
                     {app.translator.trans('lowseekai-advertising.forum.renew')}
+                  </Button>
+                ) : null}
+                {ad.status === 'approved' && (app.forum.attribute('lowseekaiAdvertisingAutoRenewalEnabled') || ad.autoRenewEnabled) ? (
+                  <Button
+                    type="button"
+                    className="Button Button--secondary LowseekaiAdvertising-autoRenewButton"
+                    icon={ad.autoRenewEnabled ? 'fas fa-toggle-on' : 'fas fa-toggle-off'}
+                    loading={this.autoRenewingAd === ad.id}
+                    disabled={this.autoRenewingAd !== null}
+                    onclick={() => this.toggleAutoRenewal(ad)}
+                  >
+                    {ad.autoRenewEnabled
+                      ? app.translator.trans('lowseekai-advertising.forum.auto_renewal_disabled')
+                      : app.translator.trans('lowseekai-advertising.forum.auto_renewal_enabled')}
                   </Button>
                 ) : null}
               </div>
@@ -573,15 +738,48 @@ class AdvertisingPage extends Page {
       return;
     }
 
+    if (this.form.autoRenewEnabled) {
+      app.modal.show(AutoRenewalConfirmationModal, {
+        titleText: this.form.title,
+        slotLabel: this.selectedSlot().label,
+        slotPosition: this.form.slotPosition,
+        durationLabel: this.selectedPlan().label,
+        price: total,
+        onConfirm: () => this.submitApplication(true),
+        onSubmitOnly: () => this.submitApplication(false),
+      });
+
+      return;
+    }
+
+    await this.submitApplication(false);
+  }
+
+  async submitApplication(autoRenewEnabled: boolean) {
     this.submitting = true;
     try {
       await app.request({
         method: 'POST',
         url: this.apiUrl('/advertising/ads'),
-        body: { data: { attributes: { ...this.form, imagePath: this.uploadedPath } } },
+        body: {
+          data: {
+            attributes: {
+              ...this.form,
+              autoRenewEnabled,
+              imagePath: this.uploadedPath,
+            },
+          },
+        },
       });
       app.alerts.show({ type: 'success' }, app.translator.trans('lowseekai-advertising.forum.pending_success'));
-      this.form = { slotKey: this.form.slotKey, slotPosition: this.form.slotPosition, title: '', targetUrl: '', durationPlan: '1_month' };
+      this.form = {
+        slotKey: this.form.slotKey,
+        slotPosition: this.form.slotPosition,
+        title: '',
+        targetUrl: '',
+        durationPlan: '1_month',
+        autoRenewEnabled: false,
+      };
       this.uploadedPath = '';
       this.uploadedFileName = '';
       if (this.fileInput) this.fileInput.value = '';
@@ -592,6 +790,45 @@ class AdvertisingPage extends Page {
       this.submitting = false;
       m.redraw();
     }
+  }
+
+  async toggleAutoRenewal(ad: AdRecord) {
+    const enabled = !ad.autoRenewEnabled;
+    const message = enabled
+      ? app.translator.trans('lowseekai-advertising.forum.auto_renewal_toggle_confirm', {
+          title: ad.title,
+          price: ad.autoRenewPrice || ad.renewalPrice,
+        })
+      : app.translator.trans('lowseekai-advertising.forum.auto_renewal_disable_confirm', { title: ad.title });
+
+    if (!window.confirm(String(message))) return;
+
+    this.autoRenewingAd = ad.id;
+    m.redraw();
+
+    try {
+      await app.request({
+        method: 'POST',
+        url: this.apiUrl(`/advertising/ads/${ad.id}/auto-renew`),
+        body: { data: { attributes: { enabled } } },
+      });
+      app.alerts.show(
+        { type: 'success' },
+        app.translator.trans(enabled ? 'lowseekai-advertising.forum.auto_renewal_enabled' : 'lowseekai-advertising.forum.auto_renewal_disabled')
+      );
+      await this.load();
+    } catch (error) {
+      app.alerts.show({ type: 'error' }, this.errorMessage(error));
+    } finally {
+      this.autoRenewingAd = null;
+      m.redraw();
+    }
+  }
+
+  autoRenewalStatusLabel(status: string) {
+    const key = ['active', 'disabled', 'failed', 'price_changed'].includes(status) ? status : 'disabled';
+
+    return app.translator.trans(`lowseekai-advertising.forum.auto_renewal_status_${key}`);
   }
 
   statusLabel(status: string) {
@@ -665,8 +902,7 @@ class AdvertisingSlotGrid extends Component<{ slot: 'left_sidebar' | 'right_side
       }
     });
 
-    const visibleEmptySlotLimit =
-      slot === 'top' ? capacity : Math.max(1, Math.min(capacity, Number(this.config.displayCount) || 3));
+    const visibleEmptySlotLimit = slot === 'top' ? capacity : Math.max(1, Math.min(capacity, Number(this.config.displayCount) || 3));
     let visibleEmptySlots = 0;
     const slotItems = Array.from({ length: capacity }, (_, index) => {
       const position = index + 1;
@@ -714,6 +950,7 @@ app.initializers.add('lowseekai/advertising/forum', () => {
   app.routes['lowseekai-advertising.index'] = { path: '/advertising', component: AdvertisingPage };
   app.notificationComponents.lowseekaiAdvertisingAdPendingReview = AdPendingReviewNotification;
   app.notificationComponents.lowseekaiAdvertisingAdReviewed = AdReviewedNotification;
+  app.notificationComponents.lowseekaiAdvertisingAutoRenewal = AdAutoRenewalNotification;
 
   extend('flarum/forum/components/NotificationGrid', 'notificationTypes', (items: any) => {
     items.add('lowseekaiAdvertisingAdPendingReview', {
@@ -726,16 +963,17 @@ app.initializers.add('lowseekai/advertising/forum', () => {
       icon: 'fas fa-gavel',
       label: app.translator.trans('lowseekai-advertising.forum.notification_reviewed_label'),
     });
+    items.add('lowseekaiAdvertisingAutoRenewal', {
+      name: 'lowseekaiAdvertisingAutoRenewal',
+      icon: 'fas fa-sync-alt',
+      label: app.translator.trans('lowseekai-advertising.forum.notification_auto_renewal_label'),
+    });
   });
 
   extend(IndexSidebar.prototype, 'items', (items: any) => {
     if (app.current?.get('routeName') !== 'index' || isMobileViewport()) return;
 
-    items.add(
-      'lowseekai-advertising-left-sidebar',
-      <AdvertisingSlotGrid slot="left_sidebar" />,
-      -1000
-    );
+    items.add('lowseekai-advertising-left-sidebar', <AdvertisingSlotGrid slot="left_sidebar" />, -1000);
   });
 
   extend(IndexPage.prototype, 'contentItems', (items: any) => {

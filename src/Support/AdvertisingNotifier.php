@@ -11,6 +11,7 @@ use Illuminate\Database\ConnectionInterface;
 use Lowseekai\Advertising\Model\Ad;
 use Lowseekai\Advertising\Notification\AdPendingReviewBlueprint;
 use Lowseekai\Advertising\Notification\AdReviewedBlueprint;
+use Lowseekai\Advertising\Notification\AdAutoRenewalBlueprint;
 
 class AdvertisingNotifier
 {
@@ -40,6 +41,17 @@ class AdvertisingNotifier
         }
 
         $this->notifications->sync(new AdReviewedBlueprint($ad, $reviewer), [$ad->user]);
+    }
+
+    public function notifyAutoRenewal(Ad $ad, string $event, ?string $reason = null, int $amount = 0): void
+    {
+        $ad->loadMissing('user');
+
+        if (! $ad->user) {
+            return;
+        }
+
+        $this->notifications->sync(new AdAutoRenewalBlueprint($ad, $event, $reason, $amount), [$ad->user]);
     }
 
     protected function reviewRecipients(User $applicant): array

@@ -9,6 +9,7 @@ use Flarum\Foundation\ValidationException;
 use Flarum\User\User;
 use Illuminate\Database\ConnectionInterface;
 use Lowseekai\Advertising\Model\Ad;
+use Lowseekai\Advertising\Model\AdRenewal;
 use Ramon\PointSystem\Repository\PointsRepository;
 
 class AdRepository
@@ -33,11 +34,13 @@ class AdRepository
         $durationPlanKey = $this->normalizeDurationPlan($attributes['durationPlan'] ?? $attributes['durationDays'] ?? '1_month');
         $durationPlan = $this->settings->durationPlan($durationPlanKey);
         $totalPrice = $this->totalPrice($slotKey, $durationPlanKey);
+        $autoRenewEnabled = $this->settings->autoRenewalEnabled()
+            && filter_var($attributes['autoRenewEnabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
         // Do not reserve points while pending; approval rechecks atomically.
         $this->assertSufficientBalance($actor, $totalPrice);
 
-        $ad = $this->db->transaction(function () use ($actor, $attributes, $slotKey, $slotPosition, $durationPlanKey, $durationPlan, $totalPrice) {
+        $ad = $this->db->transaction(function () use ($actor, $attributes, $slotKey, $slotPosition, $durationPlanKey, $durationPlan, $totalPrice, $autoRenewEnabled) {
             $this->assertSlotAvailable($slotKey, $slotPosition);
 
             $ad = new Ad();
@@ -52,6 +55,9 @@ class AdRepository
             // This legacy column now stores the monthly price.
             $ad->price_per_day = $this->settings->pricePerMonth($slotKey);
             $ad->total_price = $totalPrice;
+            $ad->auto_renew_enabled = $autoRenewEnabled;
+            $ad->auto_renew_price = $autoRenewEnabled ? $totalPrice : null;
+            $ad->auto_renew_status = $autoRenewEnabled ? 'active' : 'disabled';
             $ad->status = 'pending';
             $ad->is_visible = false;
             $ad->sort_order = $slotPosition;
@@ -116,6 +122,12 @@ class AdRepository
 
             $renewed->ends_at = $base->addDays((int) $durationPlan['days']);
             $renewed->is_visible = true;
+            if ($renewed->auto_renew_enabled) {
+                $renewed->auto_renew_price = $renewalPrice;
+                $renewed->auto_renew_status = 'active';
+                $renewed->auto_renew_failure_reason = null;
+                $renewed->auto_renew_disabled_at = null;
+            }
             $renewed->save();
 
             return $renewed->fresh('user');
@@ -124,6 +136,103 @@ class AdRepository
         $this->autoGroups->sync($updated);
 
         return $updated;
+    }
+
+    public function setAutoRenew(User $actor, Ad $ad, bool $enabled): Ad
+    {
+        if ($enabled && ! $this->settings->autoRenewalEnabled()) {
+            throw new ValidationException(['message' => '自动续费功能暂未开放。']);
+        }
+
+        $updated = $this->db->transaction(function () use ($actor, $ad, $enabled) {
+            $updated = Ad::query()->whereKey($ad->id)->lockForUpdate()->firstOrFail();
+
+            if ((int) $updated->user_id !== (int) $actor->id) {
+                throw new ValidationException(['message' => '你不能修改其他用户广告的自动续费设置。']);
+            }
+
+            if ($updated->status !== 'approved' || ! $updated->is_visible) {
+                throw new ValidationException(['status' => '只有已通过的广告可以设置自动续费。']);
+            }
+
+            if ($enabled && ! $this->settings->slotEnabled((string) $updated->slot_key)) {
+                throw new ValidationException(['slotKey' => '该广告位当前未开放。']);
+            }
+
+            if ($enabled) {
+                $durationPlanKey = $this->normalizeDurationPlan($updated->duration_plan ?: $updated->duration_days);
+                $updated->auto_renew_enabled = true;
+                $updated->auto_renew_price = $this->totalPrice((string) $updated->slot_key, $durationPlanKey);
+                $updated->auto_renew_status = 'active';
+                $updated->auto_renew_failure_reason = null;
+                $updated->auto_renew_disabled_at = null;
+            } else {
+                $updated->auto_renew_enabled = false;
+                $updated->auto_renew_status = 'disabled';
+                $updated->auto_renew_disabled_at = Carbon::now('Asia/Shanghai');
+            }
+
+            $updated->save();
+
+            return $updated->fresh('user');
+        });
+
+        if ($enabled) {
+            $this->notifier->notifyAutoRenewal($updated, 'enabled');
+        }
+
+        return $updated;
+    }
+
+    /**
+     * Process each due campaign once. A unique cycle record is inserted before
+     * charging points so retries or overlapping scheduler runs cannot double-charge.
+     */
+    public function autoRenewDueAds(int $limit = 500): array
+    {
+        if (! $this->settings->autoRenewalEnabled()) {
+            return ['checked' => 0, 'renewed' => 0, 'failed' => 0, 'paused' => 0];
+        }
+
+        $now = Carbon::now('Asia/Shanghai');
+        $ads = Ad::query()
+            ->with('user')
+            ->where('status', 'approved')
+            ->where('is_visible', true)
+            ->where('auto_renew_enabled', true)
+            ->where('auto_renew_status', 'active')
+            ->whereNotNull('ends_at')
+            ->where('ends_at', '>', $now)
+            ->where('ends_at', '<=', $now->copy()->addDay())
+            ->orderBy('ends_at')
+            ->limit(max(1, $limit))
+            ->get();
+
+        $result = ['checked' => 0, 'renewed' => 0, 'failed' => 0, 'paused' => 0];
+
+        foreach ($ads as $ad) {
+            $result['checked']++;
+            $outcome = $this->processAutoRenewal((int) $ad->id);
+
+            if ($outcome['status'] === 'renewed') {
+                $result['renewed']++;
+            } elseif ($outcome['status'] === 'failed') {
+                $result['failed']++;
+            } elseif ($outcome['status'] === 'paused') {
+                $result['paused']++;
+            }
+
+            if ($outcome['event'] && $outcome['ad']) {
+                $this->notifier->notifyAutoRenewal(
+                    $outcome['ad'],
+                    $outcome['event'],
+                    $outcome['reason'] ?? null,
+                    $outcome['amount'] ?? 0
+                );
+            }
+        }
+
+        return $result;
     }
 
     public function updateByAdmin(User $actor, Ad $ad, array $attributes): Ad
@@ -178,6 +287,11 @@ class AdRepository
                 $statusChanged = $status !== $previousStatus;
             } elseif (array_key_exists('isVisible', $attributes)) {
                 $ad->is_visible = (bool) $attributes['isVisible'] && $ad->status === 'approved';
+                if (! $ad->is_visible && $ad->auto_renew_enabled) {
+                    $ad->auto_renew_enabled = false;
+                    $ad->auto_renew_status = 'disabled';
+                    $ad->auto_renew_disabled_at = Carbon::now('Asia/Shanghai');
+                }
             }
 
             if (array_key_exists('status', $attributes)) {
@@ -191,6 +305,10 @@ class AdRepository
 
         if ($statusChanged && in_array($updated->status, ['approved', 'rejected'], true)) {
             $this->notifier->notifyReviewed($updated, $actor);
+        }
+
+        if ($statusChanged && $updated->status === 'approved' && $updated->auto_renew_enabled) {
+            $this->notifier->notifyAutoRenewal($updated, 'enabled');
         }
 
         $this->autoGroups->sync($updated);
@@ -210,6 +328,11 @@ class AdRepository
         foreach ($ads as $ad) {
             $ad->status = 'expired';
             $ad->is_visible = false;
+            if ($ad->auto_renew_enabled) {
+                $ad->auto_renew_enabled = false;
+                $ad->auto_renew_status = 'disabled';
+                $ad->auto_renew_disabled_at = Carbon::now('Asia/Shanghai');
+            }
             $ad->save();
             $this->autoGroups->sync($ad);
         }
@@ -265,12 +388,114 @@ class AdRepository
             if (! $ad->ends_at || $ad->ends_at->isPast()) {
                 $ad->ends_at = $start->copy()->addDays($this->durationDaysForAd($ad));
             }
+            if ($ad->auto_renew_enabled && ! $ad->auto_renew_price) {
+                $ad->auto_renew_price = $ad->total_price;
+                $ad->auto_renew_status = 'active';
+            }
             $ad->is_visible = true;
 
             return;
         }
 
         $ad->is_visible = false;
+        if ($ad->auto_renew_enabled) {
+            $ad->auto_renew_enabled = false;
+            $ad->auto_renew_status = 'disabled';
+            $ad->auto_renew_disabled_at = Carbon::now('Asia/Shanghai');
+        }
+    }
+
+    protected function processAutoRenewal(int $adId): array
+    {
+        return $this->db->transaction(function () use ($adId) {
+            $ad = Ad::query()
+                ->with('user')
+                ->whereKey($adId)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $ad || $ad->status !== 'approved' || ! $ad->is_visible || ! $ad->auto_renew_enabled || $ad->auto_renew_status !== 'active' || ! $ad->ends_at) {
+                return ['status' => 'skipped', 'event' => null, 'ad' => null];
+            }
+
+            $now = Carbon::now('Asia/Shanghai');
+            if ($ad->ends_at->lte($now) || $ad->ends_at->gt($now->copy()->addDay())) {
+                return ['status' => 'skipped', 'event' => null, 'ad' => null];
+            }
+
+            $cycleKey = $this->renewalCycleKey($ad->ends_at);
+            if (AdRenewal::query()->where('ad_id', $ad->id)->where('cycle_key', $cycleKey)->exists()) {
+                return ['status' => 'skipped', 'event' => null, 'ad' => null];
+            }
+
+            $durationPlanKey = $this->normalizeDurationPlan($ad->duration_plan ?: $ad->duration_days);
+            $durationPlan = $this->settings->durationPlan($durationPlanKey);
+            $amount = $this->totalPrice((string) $ad->slot_key, $durationPlanKey);
+            $attemptedAt = Carbon::now('Asia/Shanghai');
+            $renewal = new AdRenewal([
+                'ad_id' => (int) $ad->id,
+                'user_id' => (int) $ad->user_id,
+                'cycle_key' => $cycleKey,
+                'amount' => $amount,
+                'duration_days' => (int) $durationPlan['days'],
+                'previous_ends_at' => $ad->ends_at,
+                'attempted_at' => $attemptedAt,
+            ]);
+            $renewal->save();
+
+            if ((int) $ad->auto_renew_price !== $amount) {
+                $reason = '广告位价格已发生变化，请手动确认新的续费价格。';
+                $renewal->status = 'price_changed';
+                $renewal->failure_reason = $reason;
+                $renewal->save();
+                $ad->auto_renew_enabled = false;
+                $ad->auto_renew_status = 'price_changed';
+                $ad->auto_renew_failure_reason = $reason;
+                $ad->auto_renew_disabled_at = $attemptedAt;
+                $ad->auto_renew_last_attempt_at = $attemptedAt;
+                $ad->save();
+
+                return ['status' => 'paused', 'event' => 'price_changed', 'ad' => $ad->fresh('user'), 'reason' => $reason, 'amount' => $amount];
+            }
+
+            try {
+                $transaction = $amount > 0
+                    ? $this->points->deduct($ad->user, $amount, 'advertising.auto_renewal', 'advertising_renewal', (int) $renewal->id)
+                    : null;
+            } catch (\DomainException) {
+                $reason = '积分余额不足，自动续费已停止。';
+                $renewal->status = 'failed';
+                $renewal->failure_reason = $reason;
+                $renewal->save();
+                $ad->auto_renew_enabled = false;
+                $ad->auto_renew_status = 'failed';
+                $ad->auto_renew_failure_reason = $reason;
+                $ad->auto_renew_disabled_at = $attemptedAt;
+                $ad->auto_renew_last_attempt_at = $attemptedAt;
+                $ad->save();
+
+                return ['status' => 'failed', 'event' => 'failed', 'ad' => $ad->fresh('user'), 'reason' => $reason, 'amount' => $amount];
+            }
+
+            $newEndsAt = $ad->ends_at->copy()->addDays((int) $durationPlan['days']);
+            $ad->ends_at = $newEndsAt;
+            $ad->auto_renew_last_attempt_at = $attemptedAt;
+            $ad->auto_renew_failure_reason = null;
+            $ad->is_visible = true;
+            $ad->save();
+
+            $renewal->status = 'succeeded';
+            $renewal->point_transaction_id = $transaction?->id;
+            $renewal->new_ends_at = $newEndsAt;
+            $renewal->save();
+
+            return ['status' => 'renewed', 'event' => 'succeeded', 'ad' => $ad->fresh('user'), 'amount' => $amount];
+        });
+    }
+
+    protected function renewalCycleKey(Carbon $endsAt): string
+    {
+        return $endsAt->copy()->utc()->format('YmdHis');
     }
 
     protected function assertSlotAvailable(string $slotKey, ?int $position, ?int $exceptId = null): void

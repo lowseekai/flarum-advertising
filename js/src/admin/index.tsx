@@ -19,6 +19,12 @@ type AdRecord = {
   durationLabel: string;
   totalPrice: number;
   status: string;
+  autoRenewEnabled: boolean;
+  autoRenewStatus: string;
+  autoRenewPrice?: number | null;
+  autoRenewLastAttemptAt?: string | null;
+  autoRenewFailureReason?: string | null;
+  nextAutoRenewAt?: string | null;
   endsAt?: string | null;
   reviewNote?: string | null;
   user?: { displayName?: string; username?: string };
@@ -44,6 +50,7 @@ type Config = {
   currencyName: string;
   currencyIcon: string;
   renewalEnabled: boolean;
+  autoRenewalEnabled: boolean;
   autoGroupEnabled: boolean;
   autoGroupId: number | null;
   groups: { id: number; name: string }[];
@@ -69,6 +76,7 @@ const DEFAULT_CONFIG: Config = {
   currencyName: '积分',
   currencyIcon: 'fas fa-coins',
   renewalEnabled: true,
+  autoRenewalEnabled: false,
   autoGroupEnabled: false,
   autoGroupId: null,
   groups: [],
@@ -215,6 +223,12 @@ class AdvertisingSettingsPage extends ExtensionPage {
             {app.translator.trans('lowseekai-advertising.admin.renewal_enabled')}
           </Switch>
         </div>
+        <div className="Form-group">
+          <Switch state={this.config.autoRenewalEnabled} onchange={(value: boolean) => (this.config.autoRenewalEnabled = value)}>
+            {app.translator.trans('lowseekai-advertising.admin.auto_renewal_enabled')}
+          </Switch>
+          <p className="helpText">{app.translator.trans('lowseekai-advertising.admin.auto_renewal_help')}</p>
+        </div>
         {this.numberField('leftSidebarSlots', 'lowseekai-advertising.admin.left_sidebar_slots', 1, 50)}
         {this.numberField('leftSidebarDisplaySlots', 'lowseekai-advertising.admin.left_sidebar_display_slots', 1, 50)}
         {this.numberField('rightSidebarSlots', 'lowseekai-advertising.admin.right_sidebar_slots', 1, 50)}
@@ -247,7 +261,9 @@ class AdvertisingSettingsPage extends ExtensionPage {
             onchange={(event: any) => (this.config.autoGroupId = event.target.value ? Number(event.target.value) : null)}
           >
             <option value="">{app.translator.trans('lowseekai-advertising.admin.select_group')}</option>
-            {this.config.groups.map((group) => <option value={group.id}>{group.name}</option>)}
+            {this.config.groups.map((group) => (
+              <option value={group.id}>{group.name}</option>
+            ))}
           </select>
         </div>
         <div className="Form-group Form-controls">
@@ -312,7 +328,12 @@ class AdvertisingSettingsPage extends ExtensionPage {
           {this.editingAd === ad.id && this.editDraft ? (
             <div className="LowseekaiAdvertisingAdmin-editor">
               <input className="FormControl" value={this.editDraft.title} oninput={(event: any) => (this.editDraft!.title = event.target.value)} />
-              <input className="FormControl" type="url" value={this.editDraft.targetUrl} oninput={(event: any) => (this.editDraft!.targetUrl = event.target.value)} />
+              <input
+                className="FormControl"
+                type="url"
+                value={this.editDraft.targetUrl}
+                oninput={(event: any) => (this.editDraft!.targetUrl = event.target.value)}
+              />
               <div className="LowseekaiAdvertisingAdmin-editUpload">
                 <input
                   type="file"
@@ -331,7 +352,9 @@ class AdvertisingSettingsPage extends ExtensionPage {
                 </Button>
               </div>
             </div>
-          ) : <strong>{ad.title}</strong>}
+          ) : (
+            <strong>{ad.title}</strong>
+          )}
           <span>
             {ad.user?.displayName || ad.user?.username || '-'} · {ad.slotLabel} ·{' '}
             {app.translator.trans('lowseekai-advertising.admin.position_option', { position: ad.slotPosition || '-' })} · {ad.durationLabel} ·{' '}
@@ -342,6 +365,18 @@ class AdvertisingSettingsPage extends ExtensionPage {
               {app.translator.trans('lowseekai-advertising.admin.ends_at', {
                 date: new Date(ad.endsAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }),
               })}
+            </span>
+          ) : null}
+          {ad.status === 'approved' ? (
+            <span>
+              {app.translator.trans(`lowseekai-advertising.admin.auto_renewal_status_${ad.autoRenewStatus || 'disabled'}`)}
+              {ad.autoRenewPrice ? ` · ${ad.autoRenewPrice} ${this.config.currencyName}` : ''}
+              {ad.nextAutoRenewAt
+                ? ` · ${app.translator.trans('lowseekai-advertising.admin.next_auto_renew_at', {
+                    date: new Date(ad.nextAutoRenewAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }),
+                  })}`
+                : ''}
+              {ad.autoRenewFailureReason ? ` · ${ad.autoRenewFailureReason}` : ''}
             </span>
           ) : null}
           <a href={ad.targetUrl} target="_blank" rel="noopener noreferrer">

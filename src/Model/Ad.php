@@ -21,6 +21,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $price_per_day
  * @property int $total_price
  * @property int|null $point_transaction_id
+ * @property bool $auto_renew_enabled
+ * @property int|null $auto_renew_price
+ * @property string $auto_renew_status
+ * @property \Carbon\Carbon|null $auto_renew_last_attempt_at
+ * @property string|null $auto_renew_failure_reason
+ * @property \Carbon\Carbon|null $auto_renew_disabled_at
  * @property string $status
  * @property bool $is_visible
  * @property int $sort_order
@@ -43,6 +49,11 @@ class Ad extends AbstractModel
         'price_per_day' => 'integer',
         'total_price' => 'integer',
         'point_transaction_id' => 'integer',
+        'auto_renew_enabled' => 'boolean',
+        'auto_renew_price' => 'integer',
+        'auto_renew_status' => 'string',
+        'auto_renew_last_attempt_at' => 'datetime',
+        'auto_renew_disabled_at' => 'datetime',
         'is_visible' => 'boolean',
         'sort_order' => 'integer',
         'starts_at' => 'datetime',

@@ -21,6 +21,8 @@ lowseekai-advertising:
     right_sidebar_price: "右侧栏广告位每月价格"
     top_price: "顶部广告位每月价格"
     renewal_enabled: "启用广告续费按钮"
+    auto_renewal_enabled: "允许广告自动续费"
+    auto_renewal_help: "开启后，用户可以在购买广告时选择自动续费；每次扣款前都会重新检查当前广告位价格。"
     auto_group_enabled: "审核通过自动获取用户组"
     auto_group: "自动获取的用户组"
     select_group: "请选择用户组"
@@ -54,6 +56,11 @@ lowseekai-advertising:
     status_rejected: "已拒绝"
     status_expired: "已过期"
     status_hidden: "已下架"
+    auto_renewal_status_active: "自动续费已开启"
+    auto_renewal_status_disabled: "自动续费未开启"
+    auto_renewal_status_failed: "自动续费已停止"
+    auto_renewal_status_price_changed: "自动续费已暂停：价格发生变化"
+    next_auto_renew_at: "下次自动续费检查：{date}"
     slot_info: "广告位：{slot}，位置：{position}"
     position_option: "位置 {position}"
     ends_at: "到期时间：{date}"
@@ -106,6 +113,24 @@ lowseekai-advertising:
     renew: "续费"
     renew_confirm: "确定要以 {price} 积分为广告“{title}”续费吗？"
     renew_success: "广告续费成功。"
+    auto_renewal: "广告到期前自动续费"
+    auto_renewal_help: "开启后，系统会在广告到期前最多 24 小时从你的积分余额中扣除相同周期费用。你可以随时取消。"
+    auto_renewal_timing: "广告到期前最多 24 小时"
+    auto_renewal_price: "续费价格"
+    auto_renewal_last_attempt: "最近一次处理：{date}"
+    auto_renewal_enabled: "自动续费已开启"
+    auto_renewal_disabled: "自动续费已关闭"
+    auto_renewal_status_active: "自动续费已开启"
+    auto_renewal_status_disabled: "自动续费未开启"
+    auto_renewal_status_failed: "自动续费已停止：积分不足"
+    auto_renewal_status_price_changed: "自动续费已暂停：价格发生变化"
+    auto_renewal_confirm_title: "确认开启自动续费"
+    auto_renewal_confirm_body: "确定为广告“{title}”开启自动续费吗？每个 {duration} 周期将扣除 {price} 积分，系统将在{timing}执行扣款。你可以随时取消自动续费。"
+    auto_renewal_confirm: "确认开启并提交"
+    auto_renewal_submit_only: "仅提交本次广告"
+    auto_renewal_cancel: "取消"
+    auto_renewal_toggle_confirm: "确定以每个周期 {price} 积分为广告“{title}”开启自动续费吗？"
+    auto_renewal_disable_confirm: "确定停止广告“{title}”的自动续费吗？"
     status_pending: "待审核"
     status_approved: "已通过"
     status_rejected: "已拒绝"
@@ -117,6 +142,11 @@ lowseekai-advertising:
     notification_approved: "你的广告“{title}”已通过审核，已扣除 {price} 积分。广告位：{slot}，广告位置：{position}，生效时间：{startsAt}，到期时间：{endsAt}。"
     notification_rejected: "你的广告“{title}”未通过审核。"
     notification_rejected_with_note: "你的广告“{title}”未通过审核。备注：{note}"
+    notification_auto_renewal_label: "广告自动续费"
+    notification_auto_renewal_enabled: "广告“{title}”已开启自动续费。"
+    notification_auto_renewal_succeeded: "广告“{title}”已自动续费，扣除 {amount} 积分，新的到期时间：{endsAt}。"
+    notification_auto_renewal_failed: "广告“{title}”自动续费失败，已停止自动续费。{reason}"
+    notification_auto_renewal_price_changed: "广告“{title}”因价格变化已暂停自动续费，请手动确认新的续费价格。"
   email:
     pending_review:
       subject: "新的广告申请：{title}"
@@ -140,3 +170,24 @@ lowseekai-advertising:
       rejected_body: |
         你的广告“{title}”未通过审核。
         审核备注：{note}
+    auto_renewal:
+      enabled_subject: "已开启自动续费：{title}"
+      succeeded_subject: "广告已自动续费：{title}"
+      failed_subject: "自动续费失败：{title}"
+      price_changed_subject: "自动续费已暂停：{title}"
+      enabled_body: |
+        广告“{title}”已开启自动续费。
+        广告位：{slot}，广告位置：{position}
+      succeeded_body: |
+        你的广告“{title}”已自动续费。
+        扣除积分：{amount}
+        广告位：{slot}，广告位置：{position}
+        新的到期时间：{endsAt}
+      failed_body: |
+        广告“{title}”自动续费失败，自动续费已停止。
+        广告位：{slot}，广告位置：{position}
+        原因：{reason}
+      price_changed_body: |
+        广告“{title}”因价格变化已暂停自动续费。
+        广告位：{slot}，广告位置：{position}
+        请手动续费并确认新的价格。

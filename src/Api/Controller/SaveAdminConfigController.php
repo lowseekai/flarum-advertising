@@ -52,6 +52,7 @@ class SaveAdminConfigController implements RequestHandlerInterface
             AdvertisingSettings::KEY_CURRENCY_NAME => mb_substr(trim((string) ($attrs['currencyName'] ?? $this->advertising->currencyName())), 0, 30) ?: '积分',
             AdvertisingSettings::KEY_CURRENCY_ICON => preg_match('/^[a-zA-Z0-9 _-]{1,80}$/', (string) ($attrs['currencyIcon'] ?? 'fas fa-coins')) ? (string) $attrs['currencyIcon'] : 'fas fa-coins',
             AdvertisingSettings::KEY_RENEWAL_ENABLED => filter_var($attrs['renewalEnabled'] ?? true, FILTER_VALIDATE_BOOLEAN) ? '1' : '0',
+            AdvertisingSettings::KEY_AUTO_RENEWAL_ENABLED => filter_var($attrs['autoRenewalEnabled'] ?? false, FILTER_VALIDATE_BOOLEAN) ? '1' : '0',
             AdvertisingSettings::KEY_AUTO_GROUP_ENABLED => filter_var($attrs['autoGroupEnabled'] ?? false, FILTER_VALIDATE_BOOLEAN) ? '1' : '0',
         ];
 
@@ -100,6 +101,7 @@ class SaveAdminConfigController implements RequestHandlerInterface
             'currencyName' => $values[AdvertisingSettings::KEY_CURRENCY_NAME],
             'currencyIcon' => $values[AdvertisingSettings::KEY_CURRENCY_ICON],
             'renewalEnabled' => $values[AdvertisingSettings::KEY_RENEWAL_ENABLED] === '1',
+            'autoRenewalEnabled' => $values[AdvertisingSettings::KEY_AUTO_RENEWAL_ENABLED] === '1',
             'autoGroupEnabled' => $values[AdvertisingSettings::KEY_AUTO_GROUP_ENABLED] === '1',
             'autoGroupId' => $requestedGroupId,
         ]]);

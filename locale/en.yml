@@ -21,6 +21,8 @@ lowseekai-advertising:
     right_sidebar_price: "Right sidebar slot monthly price"
     top_price: "Top slot monthly price"
     renewal_enabled: "Enable advertisement renewal buttons"
+    auto_renewal_enabled: "Allow automatic advertisement renewal"
+    auto_renewal_help: "When enabled, users can opt in to automatic renewal. The current slot price is checked before each charge."
     auto_group_enabled: "Automatically grant a group after approval"
     auto_group: "Automatically granted group"
     select_group: "Select a group"
@@ -54,6 +56,11 @@ lowseekai-advertising:
     status_rejected: "Rejected"
     status_expired: "Expired"
     status_hidden: "Hidden"
+    auto_renewal_status_active: "Automatic renewal enabled"
+    auto_renewal_status_disabled: "Automatic renewal disabled"
+    auto_renewal_status_failed: "Automatic renewal stopped"
+    auto_renewal_status_price_changed: "Automatic renewal paused: price changed"
+    next_auto_renew_at: "Next automatic renewal check: {date}"
     slot_info: "Slot: {slot}, position: {position}"
     position_option: "Position {position}"
     ends_at: "Expires: {date}"
@@ -106,6 +113,24 @@ lowseekai-advertising:
     renew: "Renew"
     renew_confirm: "Renew “{title}” for {price} points?"
     renew_success: "Advertisement renewed successfully."
+    auto_renewal: "Automatically renew before this advertisement expires"
+    auto_renewal_help: "When enabled, the same duration fee will be charged from your points balance up to 24 hours before expiry. You can cancel this at any time."
+    auto_renewal_timing: "up to 24 hours before the advertisement expires"
+    auto_renewal_price: "Renewal price"
+    auto_renewal_last_attempt: "Last attempt: {date}"
+    auto_renewal_enabled: "Automatic renewal enabled"
+    auto_renewal_disabled: "Automatic renewal disabled"
+    auto_renewal_status_active: "Automatic renewal is on"
+    auto_renewal_status_disabled: "Automatic renewal is off"
+    auto_renewal_status_failed: "Automatic renewal stopped: insufficient points"
+    auto_renewal_status_price_changed: "Automatic renewal paused: price changed"
+    auto_renewal_confirm_title: "Confirm automatic renewal"
+    auto_renewal_confirm_body: "Enable automatic renewal for “{title}”? {price} points will be charged for each {duration} renewal. The charge will run {timing}. You can cancel automatic renewal at any time."
+    auto_renewal_confirm: "Confirm and submit"
+    auto_renewal_submit_only: "Submit this advertisement only"
+    auto_renewal_cancel: "Cancel"
+    auto_renewal_toggle_confirm: "Enable automatic renewal for “{title}” at {price} points per cycle?"
+    auto_renewal_disable_confirm: "Stop automatic renewal for “{title}”?"
     status_pending: "Pending review"
     status_approved: "Approved"
     status_rejected: "Rejected"
@@ -117,6 +142,11 @@ lowseekai-advertising:
     notification_approved: "Your advertisement “{title}” was approved. {price} points were charged. Slot: {slot}, position: {position}, starts: {startsAt}, expires: {endsAt}."
     notification_rejected: "Your advertisement “{title}” was rejected."
     notification_rejected_with_note: "Your advertisement “{title}” was rejected. Note: {note}"
+    notification_auto_renewal_label: "Advertising automatic renewal"
+    notification_auto_renewal_enabled: "Automatic renewal was enabled for “{title}”."
+    notification_auto_renewal_succeeded: "“{title}” was automatically renewed for {amount} points. New expiry: {endsAt}."
+    notification_auto_renewal_failed: "Automatic renewal for “{title}” failed and was stopped. {reason}"
+    notification_auto_renewal_price_changed: "Automatic renewal for “{title}” was paused because the price changed. Please confirm renewal manually."
   email:
     pending_review:
       subject: "New advertising application: {title}"
@@ -140,3 +170,24 @@ lowseekai-advertising:
       rejected_body: |
         Your advertisement “{title}” was rejected.
         Review note: {note}
+    auto_renewal:
+      enabled_subject: "Automatic renewal enabled: {title}"
+      succeeded_subject: "Advertisement renewed automatically: {title}"
+      failed_subject: "Automatic renewal failed: {title}"
+      price_changed_subject: "Automatic renewal paused: {title}"
+      enabled_body: |
+        Automatic renewal was enabled for “{title}”.
+        Slot: {slot}, position: {position}
+      succeeded_body: |
+        Your advertisement “{title}” was renewed automatically.
+        Charged: {amount} points
+        Slot: {slot}, position: {position}
+        New expiry: {endsAt}
+      failed_body: |
+        Automatic renewal for “{title}” failed and was stopped.
+        Slot: {slot}, position: {position}
+        Reason: {reason}
+      price_changed_body: |
+        Automatic renewal for “{title}” was paused because the price changed.
+        Slot: {slot}, position: {position}
+        Please confirm the new price by renewing the advertisement manually.

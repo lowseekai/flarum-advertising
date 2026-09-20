@@ -15,13 +15,16 @@ use Lowseekai\Advertising\Api\Controller\GetAdminConfigController;
 use Lowseekai\Advertising\Api\Controller\ListMyAdsController;
 use Lowseekai\Advertising\Api\Controller\ListPublicAdsController;
 use Lowseekai\Advertising\Api\Controller\ListSlotAvailabilityController;
+use Lowseekai\Advertising\Api\Controller\AutoRenewController;
 use Lowseekai\Advertising\Api\Controller\RenewAdController;
 use Lowseekai\Advertising\Api\Controller\SaveAdminConfigController;
 use Lowseekai\Advertising\Api\Controller\UpdateAdminAdController;
 use Lowseekai\Advertising\Api\Controller\UploadImageController;
 use Lowseekai\Advertising\Console\ExpireAdsCommand;
+use Lowseekai\Advertising\Console\AutoRenewAdsCommand;
 use Lowseekai\Advertising\Notification\AdPendingReviewBlueprint;
 use Lowseekai\Advertising\Notification\AdReviewedBlueprint;
+use Lowseekai\Advertising\Notification\AdAutoRenewalBlueprint;
 use Lowseekai\Advertising\Support\AdvertisingSettings;
 use Ramon\PointSystem\Repository\PointsRepository;
 
@@ -42,7 +45,8 @@ return [
 
     (new Extend\Notification())
         ->type(AdPendingReviewBlueprint::class, ['alert', 'email'])
-        ->type(AdReviewedBlueprint::class, ['alert', 'email']),
+        ->type(AdReviewedBlueprint::class, ['alert', 'email'])
+        ->type(AdAutoRenewalBlueprint::class, ['alert', 'email']),
 
     (new Extend\Routes('api'))
         ->get('/advertising/public/ads', 'lowseekai-advertising.public.ads', ListPublicAdsController::class)
@@ -51,6 +55,7 @@ return [
         ->post('/advertising/upload-image', 'lowseekai-advertising.upload-image', UploadImageController::class)
         ->post('/advertising/ads', 'lowseekai-advertising.ads.create', CreateAdController::class)
         ->post('/advertising/ads/{id:[0-9]+}/renew', 'lowseekai-advertising.ads.renew', RenewAdController::class)
+        ->post('/advertising/ads/{id:[0-9]+}/auto-renew', 'lowseekai-advertising.ads.auto-renew', AutoRenewController::class)
         ->get('/advertising/admin/ads', 'lowseekai-advertising.admin.ads', AdminListAdsController::class)
         ->patch('/advertising/admin/ads/{id:[0-9]+}', 'lowseekai-advertising.admin.ads.update', UpdateAdminAdController::class)
         ->post('/advertising/admin/ads/{id:[0-9]+}/update', 'lowseekai-advertising.admin.ads.update.post', UpdateAdminAdController::class)
@@ -109,11 +114,19 @@ return [
                 ->get(fn () => resolve(AdvertisingSettings::class)->durationPlans()),
             Schema\Boolean::make('lowseekaiAdvertisingRenewalEnabled')
                 ->get(fn () => resolve(AdvertisingSettings::class)->renewalEnabled()),
+            Schema\Boolean::make('lowseekaiAdvertisingAutoRenewalEnabled')
+                ->get(fn () => resolve(AdvertisingSettings::class)->autoRenewalEnabled()),
         ]),
 
     (new Extend\Console())
         ->command(ExpireAdsCommand::class)
         ->schedule(ExpireAdsCommand::class, function (Event $event) {
+            $event->hourly();
+        }),
+
+    (new Extend\Console())
+        ->command(AutoRenewAdsCommand::class)
+        ->schedule(AutoRenewAdsCommand::class, function (Event $event) {
             $event->hourly();
         }),
 
@@ -134,6 +147,7 @@ return [
         ->default('lowseekai-advertising.currency_name', '积分')
         ->default('lowseekai-advertising.currency_icon', 'fas fa-coins')
         ->default('lowseekai-advertising.renewal_enabled', true)
+        ->default('lowseekai-advertising.auto_renewal_enabled', false)
         ->default('lowseekai-advertising.auto_group_enabled', false),
 
     (new Extend\Policy())

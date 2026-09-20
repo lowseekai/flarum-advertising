@@ -29,6 +29,7 @@ class AdvertisingSettings
     public const KEY_CURRENCY_NAME = 'lowseekai-advertising.currency_name';
     public const KEY_CURRENCY_ICON = 'lowseekai-advertising.currency_icon';
     public const KEY_RENEWAL_ENABLED = 'lowseekai-advertising.renewal_enabled';
+    public const KEY_AUTO_RENEWAL_ENABLED = 'lowseekai-advertising.auto_renewal_enabled';
     public const KEY_AUTO_GROUP_ENABLED = 'lowseekai-advertising.auto_group_enabled';
     public const KEY_AUTO_GROUP_ID = 'lowseekai-advertising.auto_group_id';
 
@@ -126,6 +127,11 @@ class AdvertisingSettings
     public function renewalEnabled(): bool
     {
         return filter_var($this->settings->get(self::KEY_RENEWAL_ENABLED, true), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    public function autoRenewalEnabled(): bool
+    {
+        return filter_var($this->settings->get(self::KEY_AUTO_RENEWAL_ENABLED, false), FILTER_VALIDATE_BOOLEAN);
     }
 
     public function autoGroupEnabled(): bool
