@@ -196,6 +196,7 @@ type AutoRenewalModalAttrs = IInternalModalAttrs & {
   slotPosition: number;
   durationLabel: string;
   price: number;
+  autoRenewalAvailable: boolean;
   onConfirm: () => Promise<void> | void;
   onSubmitOnly: () => Promise<void> | void;
 };
@@ -208,23 +209,30 @@ class AutoRenewalConfirmationModal extends Modal<AutoRenewalModalAttrs> {
   }
 
   title() {
-    return app.translator.trans('lowseekai-advertising.forum.auto_renewal_confirm_title');
+    return app.translator.trans(
+      this.attrs.autoRenewalAvailable ? 'lowseekai-advertising.forum.auto_renewal_confirm_title' : 'lowseekai-advertising.forum.submit_confirm_title'
+    );
   }
 
   content() {
     const attrs = this.attrs;
     const currency = app.forum.attribute('lowseekaiAdvertisingCurrencyName') || '积分';
+    const body = attrs.autoRenewalAvailable
+      ? app.translator.trans('lowseekai-advertising.forum.auto_renewal_confirm_body', {
+          title: attrs.titleText,
+          price: attrs.price,
+          duration: attrs.durationLabel,
+          timing: app.translator.trans('lowseekai-advertising.forum.auto_renewal_timing'),
+        })
+      : app.translator.trans('lowseekai-advertising.forum.submit_confirm_body', {
+          title: attrs.titleText,
+          price: attrs.price,
+          currency,
+        });
 
     return (
       <div className="Modal-body">
-        <p>
-          {app.translator.trans('lowseekai-advertising.forum.auto_renewal_confirm_body', {
-            title: attrs.titleText,
-            price: attrs.price,
-            duration: attrs.durationLabel,
-            timing: app.translator.trans('lowseekai-advertising.forum.auto_renewal_timing'),
-          })}
-        </p>
+        <p>{body}</p>
         <dl className="LowseekaiAdvertising-autoRenewalSummary">
           <dt>{app.translator.trans('lowseekai-advertising.forum.slot')}</dt>
           <dd>
@@ -238,24 +246,38 @@ class AutoRenewalConfirmationModal extends Modal<AutoRenewalModalAttrs> {
           </dd>
         </dl>
         <div className="Form-controls">
-          <Button
-            className="Button Button--primary"
-            icon="fas fa-sync-alt"
-            loading={this.loadingAction === 'confirm'}
-            disabled={this.loadingAction !== null}
-            onclick={() => this.handleAction('confirm')}
-          >
-            {app.translator.trans('lowseekai-advertising.forum.auto_renewal_confirm')}
-          </Button>
-          <Button
-            className="Button Button--secondary"
-            icon="fas fa-paper-plane"
-            loading={this.loadingAction === 'submitOnly'}
-            disabled={this.loadingAction !== null}
-            onclick={() => this.handleAction('submitOnly')}
-          >
-            {app.translator.trans('lowseekai-advertising.forum.auto_renewal_submit_only')}
-          </Button>
+          {attrs.autoRenewalAvailable ? (
+            [
+              <Button
+                className="Button Button--primary"
+                icon="fas fa-sync-alt"
+                loading={this.loadingAction === 'confirm'}
+                disabled={this.loadingAction !== null}
+                onclick={() => this.handleAction('confirm')}
+              >
+                {app.translator.trans('lowseekai-advertising.forum.auto_renewal_confirm')}
+              </Button>,
+              <Button
+                className="Button Button--secondary"
+                icon="fas fa-paper-plane"
+                loading={this.loadingAction === 'submitOnly'}
+                disabled={this.loadingAction !== null}
+                onclick={() => this.handleAction('submitOnly')}
+              >
+                {app.translator.trans('lowseekai-advertising.forum.auto_renewal_submit_only')}
+              </Button>,
+            ]
+          ) : (
+            <Button
+              className="Button Button--primary"
+              icon="fas fa-paper-plane"
+              loading={this.loadingAction === 'submitOnly'}
+              disabled={this.loadingAction !== null}
+              onclick={() => this.handleAction('submitOnly')}
+            >
+              {app.translator.trans('lowseekai-advertising.forum.submit_confirm_action')}
+            </Button>
+          )}
           <Button className="Button Button--link" icon="fas fa-times" disabled={this.loadingAction !== null} onclick={() => this.hide()}>
             {app.translator.trans('lowseekai-advertising.forum.auto_renewal_cancel')}
           </Button>
@@ -840,21 +862,16 @@ class AdvertisingPage extends Page {
       return;
     }
 
-    if (app.forum.attribute('lowseekaiAdvertisingAutoRenewalEnabled')) {
-      app.modal.show(AutoRenewalConfirmationModal, {
-        titleText: this.form.title,
-        slotLabel: this.selectedSlot().label,
-        slotPosition: this.form.slotPosition,
-        durationLabel: this.selectedPlan().label,
-        price: total,
-        onConfirm: () => this.submitApplication(true),
-        onSubmitOnly: () => this.submitApplication(false),
-      });
-
-      return;
-    }
-
-    await this.submitApplication(false);
+    app.modal.show(AutoRenewalConfirmationModal, {
+      titleText: this.form.title,
+      slotLabel: this.selectedSlot().label,
+      slotPosition: this.form.slotPosition,
+      durationLabel: this.selectedPlan().label,
+      price: total,
+      autoRenewalAvailable: Boolean(app.forum.attribute('lowseekaiAdvertisingAutoRenewalEnabled')),
+      onConfirm: () => this.submitApplication(true),
+      onSubmitOnly: () => this.submitApplication(false),
+    });
   }
 
   async submitApplication(autoRenewEnabled: boolean) {
