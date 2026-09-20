@@ -120,6 +120,7 @@ lowseekai-advertising:
     next_auto_renew_at: "下次自动续费时间"
     auto_renewal: "广告到期前自动续费"
     auto_renewal_help: "开启后，系统会在广告到期前最多 24 小时从你的积分余额中扣除相同周期费用。你可以随时取消。"
+    auto_renewal_submit_prompt_help: "点击提交审核后，你可以选择开启自动续费，或仅提交本次广告。"
     auto_renewal_timing: "广告到期前最多 24 小时"
     auto_renewal_price: "续费价格"
     auto_renewal_last_attempt: "最近一次处理：{date}"

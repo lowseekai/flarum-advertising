@@ -120,6 +120,7 @@ lowseekai-advertising:
     next_auto_renew_at: "Next automatic renewal"
     auto_renewal: "Automatically renew before this advertisement expires"
     auto_renewal_help: "When enabled, the same duration fee will be charged from your points balance up to 24 hours before expiry. You can cancel this at any time."
+    auto_renewal_submit_prompt_help: "After clicking submit for review, you can choose automatic renewal or submit this advertisement only."
     auto_renewal_timing: "up to 24 hours before the advertisement expires"
     auto_renewal_price: "Renewal price"
     auto_renewal_last_attempt: "Last attempt: {date}"

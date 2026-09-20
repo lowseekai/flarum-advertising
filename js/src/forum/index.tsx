@@ -665,15 +665,8 @@ class AdvertisingPage extends Page {
         </div>
         {app.forum.attribute('lowseekaiAdvertisingAutoRenewalEnabled') ? (
           <div className="Form-group">
-            <label className="Checkbox">
-              <input
-                type="checkbox"
-                checked={this.form.autoRenewEnabled}
-                onchange={(event: any) => (this.form.autoRenewEnabled = event.target.checked)}
-              />{' '}
-              {app.translator.trans('lowseekai-advertising.forum.auto_renewal')}
-            </label>
-            <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.auto_renewal_help')}</p>
+            <label>{app.translator.trans('lowseekai-advertising.forum.auto_renewal')}</label>
+            <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.auto_renewal_submit_prompt_help')}</p>
           </div>
         ) : null}
         <Button
@@ -847,7 +840,7 @@ class AdvertisingPage extends Page {
       return;
     }
 
-    if (this.form.autoRenewEnabled) {
+    if (app.forum.attribute('lowseekaiAdvertisingAutoRenewalEnabled')) {
       app.modal.show(AutoRenewalConfirmationModal, {
         titleText: this.form.title,
         slotLabel: this.selectedSlot().label,
