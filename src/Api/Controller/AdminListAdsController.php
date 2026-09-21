@@ -29,7 +29,7 @@ class AdminListAdsController implements RequestHandlerInterface
         $status = trim((string) ($params['status'] ?? ''));
         $query = Ad::query()->with('user')->orderByDesc('id');
 
-        if ($status !== '' && in_array($status, ['pending', 'approved', 'rejected', 'expired', 'hidden'], true)) {
+        if ($status !== '' && in_array($status, ['pending', 'reserved', 'approved', 'rejected', 'expired', 'hidden', 'cancelled'], true)) {
             $query->where('status', $status);
         }
         if (($params['expiring'] ?? '') === '1') {

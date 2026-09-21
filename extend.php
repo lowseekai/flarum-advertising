@@ -10,6 +10,7 @@ use Flarum\Api\Schema;
 use Flarum\Extend;
 use Illuminate\Console\Scheduling\Event;
 use Lowseekai\Advertising\Api\Controller\AdminListAdsController;
+use Lowseekai\Advertising\Api\Controller\CancelAdController;
 use Lowseekai\Advertising\Api\Controller\CreateAdController;
 use Lowseekai\Advertising\Api\Controller\GetAdminConfigController;
 use Lowseekai\Advertising\Api\Controller\ListMyAdsController;
@@ -54,6 +55,7 @@ return [
         ->get('/advertising/me/ads', 'lowseekai-advertising.me.ads', ListMyAdsController::class)
         ->post('/advertising/upload-image', 'lowseekai-advertising.upload-image', UploadImageController::class)
         ->post('/advertising/ads', 'lowseekai-advertising.ads.create', CreateAdController::class)
+        ->post('/advertising/ads/{id:[0-9]+}/cancel', 'lowseekai-advertising.ads.cancel', CancelAdController::class)
         ->post('/advertising/ads/{id:[0-9]+}/renew', 'lowseekai-advertising.ads.renew', RenewAdController::class)
         ->post('/advertising/ads/{id:[0-9]+}/auto-renew', 'lowseekai-advertising.ads.auto-renew', AutoRenewController::class)
         ->get('/advertising/admin/ads', 'lowseekai-advertising.admin.ads', AdminListAdsController::class)
@@ -116,6 +118,12 @@ return [
                 ->get(fn () => resolve(AdvertisingSettings::class)->renewalEnabled()),
             Schema\Boolean::make('lowseekaiAdvertisingAutoRenewalEnabled')
                 ->get(fn () => resolve(AdvertisingSettings::class)->autoRenewalEnabled()),
+            Schema\Boolean::make('lowseekaiAdvertisingReservationEnabled')
+                ->get(fn () => resolve(AdvertisingSettings::class)->reservationEnabled()),
+            Schema\Integer::make('lowseekaiAdvertisingReservationLeadDays')
+                ->get(fn () => resolve(AdvertisingSettings::class)->reservationLeadDays()),
+            Schema\Integer::make('lowseekaiAdvertisingReservationWaitDays')
+                ->get(fn () => resolve(AdvertisingSettings::class)->reservationWaitDays()),
         ]),
 
     (new Extend\Console())
@@ -148,6 +156,13 @@ return [
         ->default('lowseekai-advertising.currency_icon', 'fas fa-coins')
         ->default('lowseekai-advertising.renewal_enabled', true)
         ->default('lowseekai-advertising.auto_renewal_enabled', false)
+        ->default('lowseekai-advertising.reservation_enabled', false)
+        ->default('lowseekai-advertising.reservation_lead_days', 15)
+        ->default('lowseekai-advertising.reservation_wait_days', 30)
+        ->default('lowseekai-advertising.reservation_max_queue', 10)
+        ->default('lowseekai-advertising.reservation_top_enabled', true)
+        ->default('lowseekai-advertising.reservation_left_sidebar_enabled', true)
+        ->default('lowseekai-advertising.reservation_right_sidebar_enabled', true)
         ->default('lowseekai-advertising.auto_group_enabled', false),
 
     (new Extend\Policy())

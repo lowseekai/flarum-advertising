@@ -53,6 +53,13 @@ class SaveAdminConfigController implements RequestHandlerInterface
             AdvertisingSettings::KEY_CURRENCY_ICON => preg_match('/^[a-zA-Z0-9 _-]{1,80}$/', (string) ($attrs['currencyIcon'] ?? 'fas fa-coins')) ? (string) $attrs['currencyIcon'] : 'fas fa-coins',
             AdvertisingSettings::KEY_RENEWAL_ENABLED => filter_var($attrs['renewalEnabled'] ?? true, FILTER_VALIDATE_BOOLEAN) ? '1' : '0',
             AdvertisingSettings::KEY_AUTO_RENEWAL_ENABLED => filter_var($attrs['autoRenewalEnabled'] ?? false, FILTER_VALIDATE_BOOLEAN) ? '1' : '0',
+            AdvertisingSettings::KEY_RESERVATION_ENABLED => filter_var($attrs['reservationEnabled'] ?? false, FILTER_VALIDATE_BOOLEAN) ? '1' : '0',
+            AdvertisingSettings::KEY_RESERVATION_LEAD_DAYS => (string) max(1, min(90, (int) ($attrs['reservationLeadDays'] ?? $this->advertising->reservationLeadDays()))),
+            AdvertisingSettings::KEY_RESERVATION_WAIT_DAYS => (string) max(1, min(365, (int) ($attrs['reservationWaitDays'] ?? $this->advertising->reservationWaitDays()))),
+            AdvertisingSettings::KEY_RESERVATION_MAX_QUEUE => (string) max(1, min(100, (int) ($attrs['reservationMaxQueue'] ?? $this->advertising->reservationMaxQueue()))),
+            AdvertisingSettings::KEY_RESERVATION_TOP_ENABLED => filter_var($attrs['reservationTopEnabled'] ?? true, FILTER_VALIDATE_BOOLEAN) ? '1' : '0',
+            AdvertisingSettings::KEY_RESERVATION_LEFT_SIDEBAR_ENABLED => filter_var($attrs['reservationLeftSidebarEnabled'] ?? true, FILTER_VALIDATE_BOOLEAN) ? '1' : '0',
+            AdvertisingSettings::KEY_RESERVATION_RIGHT_SIDEBAR_ENABLED => filter_var($attrs['reservationRightSidebarEnabled'] ?? true, FILTER_VALIDATE_BOOLEAN) ? '1' : '0',
             AdvertisingSettings::KEY_AUTO_GROUP_ENABLED => filter_var($attrs['autoGroupEnabled'] ?? false, FILTER_VALIDATE_BOOLEAN) ? '1' : '0',
         ];
 
@@ -102,6 +109,13 @@ class SaveAdminConfigController implements RequestHandlerInterface
             'currencyIcon' => $values[AdvertisingSettings::KEY_CURRENCY_ICON],
             'renewalEnabled' => $values[AdvertisingSettings::KEY_RENEWAL_ENABLED] === '1',
             'autoRenewalEnabled' => $values[AdvertisingSettings::KEY_AUTO_RENEWAL_ENABLED] === '1',
+            'reservationEnabled' => $values[AdvertisingSettings::KEY_RESERVATION_ENABLED] === '1',
+            'reservationLeadDays' => (int) $values[AdvertisingSettings::KEY_RESERVATION_LEAD_DAYS],
+            'reservationWaitDays' => (int) $values[AdvertisingSettings::KEY_RESERVATION_WAIT_DAYS],
+            'reservationMaxQueue' => (int) $values[AdvertisingSettings::KEY_RESERVATION_MAX_QUEUE],
+            'reservationTopEnabled' => $values[AdvertisingSettings::KEY_RESERVATION_TOP_ENABLED] === '1',
+            'reservationLeftSidebarEnabled' => $values[AdvertisingSettings::KEY_RESERVATION_LEFT_SIDEBAR_ENABLED] === '1',
+            'reservationRightSidebarEnabled' => $values[AdvertisingSettings::KEY_RESERVATION_RIGHT_SIDEBAR_ENABLED] === '1',
             'autoGroupEnabled' => $values[AdvertisingSettings::KEY_AUTO_GROUP_ENABLED] === '1',
             'autoGroupId' => $requestedGroupId,
         ]]);

@@ -24,6 +24,12 @@ type SlotConfig = {
   displayCount?: number;
   pricePerMonth: number;
   positions?: SlotPosition[];
+  availableCount?: number;
+  isFull?: boolean;
+  reservable?: boolean;
+  earliestReleaseAt?: string | null;
+  reservationQueueCount?: number;
+  myReservationQueuePosition?: number | null;
 };
 type AdRecord = {
   id: number;
@@ -37,6 +43,12 @@ type AdRecord = {
   totalPrice: number;
   renewalPrice: number;
   status: string;
+  isReservation?: boolean;
+  reservedAt?: string | null;
+  reservationEstimatedStartAt?: string | null;
+  reservationWaitUntil?: string | null;
+  reservationDeferredCount?: number;
+  reservationCancelledAt?: string | null;
   autoRenewEnabled: boolean;
   autoRenewStatus: string;
   autoRenewPrice?: number | null;
@@ -58,6 +70,8 @@ type AdvertisingNotificationData = {
   position?: number | null;
   startsAt?: string | null;
   endsAt?: string | null;
+  estimatedStartAt?: string | null;
+  waitUntil?: string | null;
   event?: string;
   amount?: number;
   reason?: string;
@@ -158,7 +172,11 @@ class AdReviewedNotification extends Notification {
   icon() {
     const data = this.attrs.notification.content<AdvertisingNotificationData>() || {};
 
-    return data.status === 'approved' ? 'fas fa-check-circle' : 'fas fa-gavel';
+    if (data.status === 'approved') return 'fas fa-check-circle';
+    if (data.status === 'reserved') return 'fas fa-clock';
+    if (['cancelled', 'expired'].includes(data.status || '')) return 'fas fa-undo';
+
+    return 'fas fa-gavel';
   }
 
   href() {
@@ -170,6 +188,10 @@ class AdReviewedNotification extends Notification {
     const key =
       data.status === 'approved'
         ? 'lowseekai-advertising.forum.notification_approved'
+        : data.status === 'reserved'
+        ? 'lowseekai-advertising.forum.notification_reserved'
+        : ['cancelled', 'expired'].includes(data.status || '')
+        ? 'lowseekai-advertising.forum.notification_cancelled'
         : data.reviewNote
         ? 'lowseekai-advertising.forum.notification_rejected_with_note'
         : 'lowseekai-advertising.forum.notification_rejected';
@@ -178,9 +200,10 @@ class AdReviewedNotification extends Notification {
       title: data.title || '',
       price: data.totalPrice || 0,
       slot: data.slotLabel || '',
-      position: data.position || data.slotPosition || '',
       startsAt: data.startsAt || '',
       endsAt: data.endsAt || '',
+      estimatedStartAt: data.estimatedStartAt || '',
+      waitUntil: data.waitUntil || '',
       note: data.reviewNote || '',
     });
   }
@@ -468,6 +491,7 @@ class AdvertisingPage extends Page {
   private fileInput: HTMLInputElement | null = null;
   private refreshTimer: number | null = null;
   private autoRenewingAd: number | null = null;
+  private cancelingAd: number | null = null;
   private form = {
     slotKey: 'right_sidebar',
     title: '',
@@ -620,6 +644,9 @@ class AdvertisingPage extends Page {
     const insufficient = total > balance;
     const positions = this.availablePositions();
     const noPositions = !positions.some((position) => position.available);
+    const selectedSlot = this.selectedSlot();
+    const canReserve = noPositions && Boolean(selectedSlot.reservable);
+    const cannotSubmitForSlot = noPositions && !canReserve;
 
     return (
       <section className="LowseekaiAdvertising-apply">
@@ -635,7 +662,7 @@ class AdvertisingPage extends Page {
               ))}
           </select>
         </div>
-        {noPositions ? <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.no_positions')}</p> : null}
+        {this.slotAvailabilitySummary(selectedSlot, noPositions, canReserve)}
         <div className="Form-group">
           <label>{app.translator.trans('lowseekai-advertising.forum.title_label')}</label>
           <input className="FormControl" value={this.form.title} oninput={(event: any) => (this.form.title = event.target.value)} />
@@ -711,7 +738,7 @@ class AdvertisingPage extends Page {
           className="Button Button--primary"
           icon="fas fa-paper-plane"
           loading={this.submitting}
-          disabled={this.submitting || insufficient || noPositions}
+          disabled={this.submitting || insufficient || cannotSubmitForSlot}
           onclick={() => this.submit()}
         >
           {app.translator.trans('lowseekai-advertising.forum.submit')}
@@ -741,6 +768,12 @@ class AdvertisingPage extends Page {
                   <span>{app.translator.trans('lowseekai-advertising.forum.starts_at', { date: this.formatDate(ad.startsAt) })}</span>
                 ) : null}
                 {ad.endsAt ? <span>{app.translator.trans('lowseekai-advertising.forum.ends_at', { date: this.formatDate(ad.endsAt) })}</span> : null}
+                {ad.reservationEstimatedStartAt ? (
+                  <span>{app.translator.trans('lowseekai-advertising.forum.estimated_release_at', { date: this.formatDate(ad.reservationEstimatedStartAt) })}</span>
+                ) : null}
+                {ad.reservationWaitUntil ? (
+                  <span>{app.translator.trans('lowseekai-advertising.forum.reservation_wait_until', { date: this.formatDate(ad.reservationWaitUntil) })}</span>
+                ) : null}
                 {ad.status === 'approved' && ad.autoRenewStatus ? (
                   <span className="LowseekaiAdvertising-autoRenewalStatus">
                     {this.autoRenewalStatusLabel(ad.autoRenewStatus)}
@@ -778,6 +811,18 @@ class AdvertisingPage extends Page {
                       : app.translator.trans('lowseekai-advertising.forum.auto_renewal_enable_button')}
                   </Button>
                 ) : null}
+                {ad.isReservation && ['pending', 'reserved'].includes(ad.status) ? (
+                  <Button
+                    type="button"
+                    className="Button Button--secondary LowseekaiAdvertising-cancelReservationButton"
+                    icon="fas fa-times"
+                    loading={this.cancelingAd === ad.id}
+                    disabled={this.cancelingAd !== null}
+                    onclick={() => this.cancelReservation(ad)}
+                  >
+                    {app.translator.trans('lowseekai-advertising.forum.cancel_reservation')}
+                  </Button>
+                ) : null}
               </div>
             </div>
           ))
@@ -786,6 +831,29 @@ class AdvertisingPage extends Page {
         )}
       </section>
     );
+  }
+
+  slotAvailabilitySummary(slot: SlotConfig, noPositions: boolean, canReserve: boolean) {
+    if (!noPositions) {
+      return <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.slot_available_now')}</p>;
+    }
+
+    if (canReserve) {
+      return (
+        <div className="helpText LowseekaiAdvertising-slotStatus">
+          <span>{app.translator.trans('lowseekai-advertising.forum.slot_full_reservable')}</span>
+          {slot.earliestReleaseAt ? (
+            <span>{app.translator.trans('lowseekai-advertising.forum.estimated_release_at', { date: this.formatDate(slot.earliestReleaseAt) })}</span>
+          ) : null}
+          <span>{app.translator.trans('lowseekai-advertising.forum.reservation_queue_count', { count: slot.reservationQueueCount || 0 })}</span>
+          {slot.myReservationQueuePosition ? (
+            <span>{app.translator.trans('lowseekai-advertising.forum.my_reservation_queue_position', { position: slot.myReservationQueuePosition })}</span>
+          ) : null}
+        </div>
+      );
+    }
+
+    return <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.slot_full_unavailable')}</p>;
   }
 
   async upload(file?: File) {
@@ -984,6 +1052,37 @@ class AdvertisingPage extends Page {
     }
   }
 
+  cancelReservation(ad: AdRecord) {
+    app.modal.show(ConfirmationActionModal, {
+      titleText: app.translator.trans('lowseekai-advertising.forum.cancel_reservation_title'),
+      bodyText: app.translator.trans('lowseekai-advertising.forum.cancel_reservation_body', { title: ad.title }),
+      confirmText: app.translator.trans('lowseekai-advertising.forum.cancel_reservation_confirm'),
+      confirmIcon: 'fas fa-times',
+      confirmClassName: 'Button Button--danger',
+      details: [
+        { label: app.translator.trans('lowseekai-advertising.forum.slot'), value: ad.slotLabel },
+        { label: app.translator.trans('lowseekai-advertising.forum.duration'), value: ad.durationLabel },
+      ],
+      onConfirm: () => this.confirmCancelReservation(ad),
+    });
+  }
+
+  async confirmCancelReservation(ad: AdRecord) {
+    this.cancelingAd = ad.id;
+    m.redraw();
+
+    try {
+      await app.request({ method: 'POST', url: this.apiUrl(`/advertising/ads/${ad.id}/cancel`) });
+      app.alerts.show({ type: 'success' }, app.translator.trans('lowseekai-advertising.forum.cancel_reservation_success'));
+      await this.load();
+    } catch (error) {
+      app.alerts.show({ type: 'error' }, this.errorMessage(error));
+    } finally {
+      this.cancelingAd = null;
+      m.redraw();
+    }
+  }
+
   autoRenewalStatusLabel(status: string) {
     const key = ['active', 'disabled', 'failed', 'price_changed'].includes(status) ? status : 'disabled';
 
@@ -991,7 +1090,7 @@ class AdvertisingPage extends Page {
   }
 
   statusLabel(status: string) {
-    const key = ['pending', 'approved', 'rejected', 'expired', 'hidden'].includes(status) ? status : 'pending';
+    const key = ['pending', 'reserved', 'approved', 'rejected', 'expired', 'hidden', 'cancelled'].includes(status) ? status : 'pending';
 
     return app.translator.trans(`lowseekai-advertising.forum.status_${key}`);
   }

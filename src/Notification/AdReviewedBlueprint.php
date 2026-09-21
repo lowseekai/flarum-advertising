@@ -45,6 +45,9 @@ class AdReviewedBlueprint implements BlueprintInterface, AlertableInterface, Mai
             'reviewNote' => (string) ($this->ad->review_note ?? ''),
             'startsAt' => $startsAt,
             'endsAt' => $endsAt,
+            'reservedAt' => $this->ad->reserved_at?->timezone('Asia/Shanghai')->format('Y-m-d H:i:s'),
+            'estimatedStartAt' => $this->ad->reservation_estimated_start_at?->timezone('Asia/Shanghai')->format('Y-m-d H:i:s'),
+            'waitUntil' => $this->ad->reservation_wait_until?->timezone('Asia/Shanghai')->format('Y-m-d H:i:s'),
         ];
     }
 
@@ -59,9 +62,12 @@ class AdReviewedBlueprint implements BlueprintInterface, AlertableInterface, Mai
     public function getEmailSubject(TranslatorInterface $translator): string
     {
         return $translator->trans(
-            $this->ad->status === 'approved'
-                ? 'lowseekai-advertising.email.reviewed.approved_subject'
-                : 'lowseekai-advertising.email.reviewed.rejected_subject',
+            match ($this->ad->status) {
+                'approved' => 'lowseekai-advertising.email.reviewed.approved_subject',
+                'reserved' => 'lowseekai-advertising.email.reviewed.reserved_subject',
+                'cancelled', 'expired' => 'lowseekai-advertising.email.reviewed.cancelled_subject',
+                default => 'lowseekai-advertising.email.reviewed.rejected_subject',
+            },
             ['{title}' => (string) $this->ad->title]
         );
     }

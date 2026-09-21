@@ -23,6 +23,13 @@ lowseekai-advertising:
     renewal_enabled: "启用广告续费按钮"
     auto_renewal_enabled: "允许广告自动续费"
     auto_renewal_help: "开启后，用户可以在购买广告时选择自动续费；每次扣款前都会重新检查当前广告位价格。"
+    reservation_enabled: "允许用户预定广告位"
+    reservation_lead_days: "允许预定的到期提前天数"
+    reservation_wait_days: "预定最长等待天数"
+    reservation_max_queue: "每个广告区域最大预定队列数"
+    reservation_top_enabled: "允许预定顶部广告位"
+    reservation_left_sidebar_enabled: "允许预定左侧栏广告位"
+    reservation_right_sidebar_enabled: "允许预定右侧栏广告位"
     auto_group_enabled: "审核通过自动获取用户组"
     auto_group: "自动获取的用户组"
     select_group: "请选择用户组"
@@ -35,6 +42,8 @@ lowseekai-advertising:
     rejected_title: "已拒绝广告"
     expired_title: "已过期广告"
     hidden_title: "已下架广告"
+    reserved_title: "排队中的预定"
+    cancelled_title: "已取消预定"
     empty: "暂无广告。"
     review_note: "审核备注"
     approve: "通过并扣除积分"
@@ -56,6 +65,13 @@ lowseekai-advertising:
     status_rejected: "已拒绝"
     status_expired: "已过期"
     status_hidden: "已下架"
+    status_reserved: "排队中"
+    status_cancelled: "已取消"
+    reservation_label: "广告预定"
+    reservation_estimated_start_at: "预计释放时间：{date}"
+    reservation_wait_until: "最晚等待时间：{date}"
+    cancel_reservation: "取消预定"
+    cancelled: "预定已取消，如已扣除积分，系统将在适用时退还。"
     auto_renewal_status_active: "自动续费已开启"
     auto_renewal_status_disabled: "自动续费未开启"
     auto_renewal_status_failed: "自动续费已停止"
@@ -153,12 +169,16 @@ lowseekai-advertising:
     status_rejected: "已拒绝"
     status_expired: "已过期"
     status_hidden: "已下架"
+    status_reserved: "排队中"
+    status_cancelled: "已取消"
     notification_pending_label: "广告申请"
     notification_reviewed_label: "广告审核结果"
     notification_pending: "用户 {user} 提交了广告申请：{title}，预计消耗 {price} 积分。"
     notification_approved: "你的广告“{title}”已通过审核，已扣除 {price} 积分。广告位：{slot}，生效时间：{startsAt}，到期时间：{endsAt}。"
     notification_rejected: "你的广告“{title}”未通过审核。"
     notification_rejected_with_note: "你的广告“{title}”未通过审核。备注：{note}"
+    notification_reserved: "你的广告预定“{title}”已通过审核，已扣除 {price} 积分。广告位：{slot}，预计释放时间：{estimatedStartAt}，最晚等待时间：{waitUntil}。"
+    notification_cancelled: "你的广告预定“{title}”已取消。如已扣除积分，系统将在适用时退还。广告位：{slot}。"
     notification_auto_renewal_label: "广告自动续费"
     notification_auto_renewal_enabled: "广告“{title}”已开启自动续费。"
     notification_auto_renewal_succeeded: "广告“{title}”已自动续费，扣除 {amount} 积分，新的到期时间：{endsAt}。"
@@ -186,6 +206,16 @@ lowseekai-advertising:
       rejected_body: |
         你的广告“{title}”未通过审核。
         审核备注：{note}
+      reserved_subject: "广告预定已通过：{title}"
+      cancelled_subject: "广告预定已取消：{title}"
+      reserved_body: |
+        你的广告预定“{title}”已通过审核，已扣除 {price} 积分。
+        广告位：{slot}
+        预计最早释放时间：{estimatedStartAt}
+        最长等待截止时间：{waitUntil}
+      cancelled_body: |
+        你的广告预定“{title}”已取消。如已扣除积分，系统已按规则返还。
+        广告位：{slot}
     auto_renewal:
       enabled_subject: "已开启自动续费：{title}"
       succeeded_subject: "广告已自动续费：{title}"

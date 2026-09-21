@@ -51,6 +51,13 @@ class GetAdminConfigController implements RequestHandlerInterface
             'currencyIcon' => $this->settings->currencyIcon(),
             'renewalEnabled' => $this->settings->renewalEnabled(),
             'autoRenewalEnabled' => $this->settings->autoRenewalEnabled(),
+            'reservationEnabled' => $this->settings->reservationEnabled(),
+            'reservationLeadDays' => $this->settings->reservationLeadDays(),
+            'reservationWaitDays' => $this->settings->reservationWaitDays(),
+            'reservationMaxQueue' => $this->settings->reservationMaxQueue(),
+            'reservationTopEnabled' => $this->settings->slotReservationEnabled('top'),
+            'reservationLeftSidebarEnabled' => $this->settings->slotReservationEnabled('left_sidebar'),
+            'reservationRightSidebarEnabled' => $this->settings->slotReservationEnabled('right_sidebar'),
             'autoGroupEnabled' => $this->settings->autoGroupEnabled(),
             'autoGroupId' => $this->settings->autoGroupId(),
             'groups' => Group::query()

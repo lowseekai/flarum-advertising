@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $user_id
  * @property string $slot_key
  * @property int|null $slot_position
+ * @property bool $is_reservation
  * @property string $title
  * @property string $image_path
  * @property string $target_url
@@ -21,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $price_per_day
  * @property int $total_price
  * @property int|null $point_transaction_id
+ * @property int|null $refund_transaction_id
  * @property bool $auto_renew_enabled
  * @property int|null $auto_renew_price
  * @property string $auto_renew_status
@@ -35,6 +37,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $review_note
  * @property int|null $reviewed_by
  * @property \Carbon\Carbon|null $reviewed_at
+ * @property \Carbon\Carbon|null $reserved_at
+ * @property \Carbon\Carbon|null $reservation_estimated_start_at
+ * @property \Carbon\Carbon|null $reservation_wait_until
+ * @property int $reservation_deferred_count
+ * @property \Carbon\Carbon|null $reservation_cancelled_at
  */
 class Ad extends AbstractModel
 {
@@ -46,9 +53,11 @@ class Ad extends AbstractModel
         'duration_days' => 'integer',
         'duration_plan' => 'string',
         'slot_position' => 'integer',
+        'is_reservation' => 'boolean',
         'price_per_day' => 'integer',
         'total_price' => 'integer',
         'point_transaction_id' => 'integer',
+        'refund_transaction_id' => 'integer',
         'auto_renew_enabled' => 'boolean',
         'auto_renew_price' => 'integer',
         'auto_renew_status' => 'string',
@@ -59,6 +68,11 @@ class Ad extends AbstractModel
         'starts_at' => 'datetime',
         'ends_at' => 'datetime',
         'reviewed_at' => 'datetime',
+        'reserved_at' => 'datetime',
+        'reservation_estimated_start_at' => 'datetime',
+        'reservation_wait_until' => 'datetime',
+        'reservation_deferred_count' => 'integer',
+        'reservation_cancelled_at' => 'datetime',
     ];
 
     public function user(): BelongsTo

@@ -30,6 +30,13 @@ class AdvertisingSettings
     public const KEY_CURRENCY_ICON = 'lowseekai-advertising.currency_icon';
     public const KEY_RENEWAL_ENABLED = 'lowseekai-advertising.renewal_enabled';
     public const KEY_AUTO_RENEWAL_ENABLED = 'lowseekai-advertising.auto_renewal_enabled';
+    public const KEY_RESERVATION_ENABLED = 'lowseekai-advertising.reservation_enabled';
+    public const KEY_RESERVATION_LEAD_DAYS = 'lowseekai-advertising.reservation_lead_days';
+    public const KEY_RESERVATION_WAIT_DAYS = 'lowseekai-advertising.reservation_wait_days';
+    public const KEY_RESERVATION_MAX_QUEUE = 'lowseekai-advertising.reservation_max_queue';
+    public const KEY_RESERVATION_TOP_ENABLED = 'lowseekai-advertising.reservation_top_enabled';
+    public const KEY_RESERVATION_LEFT_SIDEBAR_ENABLED = 'lowseekai-advertising.reservation_left_sidebar_enabled';
+    public const KEY_RESERVATION_RIGHT_SIDEBAR_ENABLED = 'lowseekai-advertising.reservation_right_sidebar_enabled';
     public const KEY_AUTO_GROUP_ENABLED = 'lowseekai-advertising.auto_group_enabled';
     public const KEY_AUTO_GROUP_ID = 'lowseekai-advertising.auto_group_id';
 
@@ -134,6 +141,41 @@ class AdvertisingSettings
         return filter_var($this->settings->get(self::KEY_AUTO_RENEWAL_ENABLED, false), FILTER_VALIDATE_BOOLEAN);
     }
 
+    public function reservationEnabled(): bool
+    {
+        return filter_var($this->settings->get(self::KEY_RESERVATION_ENABLED, false), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    public function slotReservationEnabled(string $slotKey): bool
+    {
+        if (! $this->reservationEnabled()) {
+            return false;
+        }
+
+        $slotKey = $this->normalizeSlotKey($slotKey);
+
+        return match ($slotKey) {
+            'top' => filter_var($this->settings->get(self::KEY_RESERVATION_TOP_ENABLED, true), FILTER_VALIDATE_BOOLEAN),
+            'left_sidebar' => filter_var($this->settings->get(self::KEY_RESERVATION_LEFT_SIDEBAR_ENABLED, true), FILTER_VALIDATE_BOOLEAN),
+            default => filter_var($this->settings->get(self::KEY_RESERVATION_RIGHT_SIDEBAR_ENABLED, true), FILTER_VALIDATE_BOOLEAN),
+        };
+    }
+
+    public function reservationLeadDays(): int
+    {
+        return max(1, min(90, (int) $this->settings->get(self::KEY_RESERVATION_LEAD_DAYS, 15)));
+    }
+
+    public function reservationWaitDays(): int
+    {
+        return max(1, min(365, (int) $this->settings->get(self::KEY_RESERVATION_WAIT_DAYS, 30)));
+    }
+
+    public function reservationMaxQueue(): int
+    {
+        return max(1, min(100, (int) $this->settings->get(self::KEY_RESERVATION_MAX_QUEUE, 10)));
+    }
+
     public function autoGroupEnabled(): bool
     {
         return filter_var($this->settings->get(self::KEY_AUTO_GROUP_ENABLED, false), FILTER_VALIDATE_BOOLEAN)
@@ -194,6 +236,7 @@ class AdvertisingSettings
             'capacity' => $this->slotCount($key),
             'displayCount' => $this->displaySlotCount($key),
             'pricePerMonth' => $this->pricePerMonth($key),
+            'reservationEnabled' => $this->slotReservationEnabled($key),
         ], array_keys(self::SLOT_LABELS), array_values(self::SLOT_LABELS));
     }
 

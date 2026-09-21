@@ -23,6 +23,13 @@ lowseekai-advertising:
     renewal_enabled: "Enable advertisement renewal buttons"
     auto_renewal_enabled: "Allow automatic advertisement renewal"
     auto_renewal_help: "When enabled, users can opt in to automatic renewal. The current slot price is checked before each charge."
+    reservation_enabled: "Allow advertising area reservations"
+    reservation_lead_days: "Reservation availability window (days)"
+    reservation_wait_days: "Maximum reservation wait (days)"
+    reservation_max_queue: "Maximum reservations per area"
+    reservation_top_enabled: "Allow top area reservations"
+    reservation_left_sidebar_enabled: "Allow left sidebar reservations"
+    reservation_right_sidebar_enabled: "Allow right sidebar reservations"
     auto_group_enabled: "Automatically grant a group after approval"
     auto_group: "Automatically granted group"
     select_group: "Select a group"
@@ -35,6 +42,8 @@ lowseekai-advertising:
     rejected_title: "Rejected advertisements"
     expired_title: "Expired advertisements"
     hidden_title: "Hidden advertisements"
+    reserved_title: "Queued reservations"
+    cancelled_title: "Cancelled reservations"
     empty: "No advertisements."
     review_note: "Review note"
     approve: "Approve and charge points"
@@ -56,6 +65,13 @@ lowseekai-advertising:
     status_rejected: "Rejected"
     status_expired: "Expired"
     status_hidden: "Hidden"
+    status_reserved: "Queued"
+    status_cancelled: "Cancelled"
+    reservation_label: "Reservation"
+    reservation_estimated_start_at: "Estimated release: {date}"
+    reservation_wait_until: "Wait deadline: {date}"
+    cancel_reservation: "Cancel reservation"
+    cancelled: "Reservation cancelled and any charged points were refunded when applicable."
     auto_renewal_status_active: "Automatic renewal enabled"
     auto_renewal_status_disabled: "Automatic renewal disabled"
     auto_renewal_status_failed: "Automatic renewal stopped"
@@ -85,6 +101,17 @@ lowseekai-advertising:
     position_option: "Position {position}"
     position_unavailable: "Occupied"
     no_positions: "There are no available advertising positions."
+    slot_available_now: "This advertising area has an available position."
+    slot_full_reservable: "This advertising area is full, but reservations are available."
+    slot_full_unavailable: "This advertising area is full and cannot accept reservations right now."
+    estimated_release_at: "Estimated earliest release: {date}"
+    reservation_wait_until: "Maximum waiting deadline: {date}"
+    reservation_queue_count: "Current queue: {count}"
+    my_reservation_queue_position: "Your queue position: {position}"
+    cancel_reservation_title: "Cancel reservation"
+    cancel_reservation_body: "Cancel the reservation for “{title}”? Charged points will be refunded when applicable."
+    cancel_reservation_confirm: "Confirm cancellation"
+    cancel_reservation_success: "Reservation cancelled."
     title_label: "Advertisement title"
     url: "Destination URL"
     image: "Advertisement image"
@@ -153,6 +180,10 @@ lowseekai-advertising:
     status_rejected: "Rejected"
     status_expired: "Expired"
     status_hidden: "Hidden"
+    status_reserved: "Queued"
+    status_cancelled: "Cancelled"
+    notification_reserved: "Your advertisement reservation “{title}” was approved. {price} points were charged. Slot: {slot}, estimated release: {estimatedStartAt}, wait deadline: {waitUntil}."
+    notification_cancelled: "Your advertisement reservation “{title}” was cancelled. Any charged points were refunded when applicable. Slot: {slot}."
     notification_pending_label: "Advertising applications"
     notification_reviewed_label: "Advertising review results"
     notification_pending: "User {user} submitted an advertisement: {title}. Estimated cost: {price} points."
@@ -177,15 +208,25 @@ lowseekai-advertising:
         Please sign in to the administration panel to review it.
     reviewed:
       approved_subject: "Advertising application approved: {title}"
+      reserved_subject: "Advertising reservation approved: {title}"
       rejected_subject: "Advertising application rejected: {title}"
+      cancelled_subject: "Advertising reservation cancelled: {title}"
       approved_body: |
         Your advertisement “{title}” was approved and {price} points were charged.
         Slot: {slot}
         Starts: {startsAt}
         Expires: {endsAt}
+      reserved_body: |
+        Your advertisement reservation "{title}" was approved and {price} points were charged.
+        Slot: {slot}
+        Estimated earliest release: {estimatedStartAt}
+        Maximum waiting deadline: {waitUntil}
       rejected_body: |
         Your advertisement “{title}” was rejected.
         Review note: {note}
+      cancelled_body: |
+        Your advertisement reservation "{title}" was cancelled. Any charged points have been refunded when applicable.
+        Slot: {slot}
     auto_renewal:
       enabled_subject: "Automatic renewal enabled: {title}"
       succeeded_subject: "Advertisement renewed automatically: {title}"

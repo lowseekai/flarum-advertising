@@ -20,6 +20,13 @@ type AdRecord = {
   durationLabel: string;
   totalPrice: number;
   status: string;
+  isReservation?: boolean;
+  reservedAt?: string | null;
+  reservationEstimatedStartAt?: string | null;
+  reservationWaitUntil?: string | null;
+  reservationDeferredCount?: number;
+  reservationCancelledAt?: string | null;
+  refundTransactionId?: number | null;
   autoRenewEnabled: boolean;
   autoRenewStatus: string;
   autoRenewPrice?: number | null;
@@ -52,6 +59,13 @@ type Config = {
   currencyIcon: string;
   renewalEnabled: boolean;
   autoRenewalEnabled: boolean;
+  reservationEnabled: boolean;
+  reservationLeadDays: number;
+  reservationWaitDays: number;
+  reservationMaxQueue: number;
+  reservationTopEnabled: boolean;
+  reservationLeftSidebarEnabled: boolean;
+  reservationRightSidebarEnabled: boolean;
   autoGroupEnabled: boolean;
   autoGroupId: number | null;
   groups: { id: number; name: string }[];
@@ -78,6 +92,13 @@ const DEFAULT_CONFIG: Config = {
   currencyIcon: 'fas fa-coins',
   renewalEnabled: true,
   autoRenewalEnabled: false,
+  reservationEnabled: false,
+  reservationLeadDays: 15,
+  reservationWaitDays: 30,
+  reservationMaxQueue: 10,
+  reservationTopEnabled: true,
+  reservationLeftSidebarEnabled: true,
+  reservationRightSidebarEnabled: true,
   autoGroupEnabled: false,
   autoGroupId: null,
   groups: [],
@@ -145,7 +166,7 @@ class AdvertisingSettingsPage extends ExtensionPage {
   expiringAds() {
     const soon = Date.now() + 7 * 24 * 60 * 60 * 1000;
 
-    return this.ads.filter((ad) => ad.status === 'approved' && ad.endsAt && new Date(ad.endsAt).getTime() <= soon);
+    return this.ads.filter((ad) => ad.status === 'approved' && ad.endsAt && this.parseDate(ad.endsAt) <= soon);
   }
 
   currentAds() {
@@ -164,11 +185,13 @@ class AdvertisingSettingsPage extends ExtensionPage {
           <div className="LowseekaiAdvertisingAdmin-review">
             <div className="LowseekaiAdvertisingAdmin-tabs">
               {this.sectionButton('pending', 'pending_title')}
+              {this.sectionButton('reserved', 'reserved_title')}
               {this.sectionButton('approved', 'approved_title')}
               {this.sectionButton('expiring', 'expiring_title')}
               {this.sectionButton('rejected', 'rejected_title')}
               {this.sectionButton('expired', 'expired_title')}
               {this.sectionButton('hidden', 'hidden_title')}
+              {this.sectionButton('cancelled', 'cancelled_title')}
             </div>
             {this.loadingAds ? (
               <LoadingIndicator />
@@ -229,6 +252,31 @@ class AdvertisingSettingsPage extends ExtensionPage {
             {app.translator.trans('lowseekai-advertising.admin.auto_renewal_enabled')}
           </Switch>
           <p className="helpText">{app.translator.trans('lowseekai-advertising.admin.auto_renewal_help')}</p>
+        </div>
+        <div className="Form-group">
+          <Switch state={this.config.reservationEnabled} onchange={(value: boolean) => (this.config.reservationEnabled = value)}>
+            {app.translator.trans('lowseekai-advertising.admin.reservation_enabled')}
+          </Switch>
+        </div>
+        {this.numberField('reservationLeadDays', 'lowseekai-advertising.admin.reservation_lead_days', 1, 90)}
+        {this.numberField('reservationWaitDays', 'lowseekai-advertising.admin.reservation_wait_days', 1, 365)}
+        {this.numberField('reservationMaxQueue', 'lowseekai-advertising.admin.reservation_max_queue', 1, 100)}
+        <div className="Form-group">
+          <Switch state={this.config.reservationTopEnabled} onchange={(value: boolean) => (this.config.reservationTopEnabled = value)}>
+            {app.translator.trans('lowseekai-advertising.admin.reservation_top_enabled')}
+          </Switch>
+          <Switch
+            state={this.config.reservationLeftSidebarEnabled}
+            onchange={(value: boolean) => (this.config.reservationLeftSidebarEnabled = value)}
+          >
+            {app.translator.trans('lowseekai-advertising.admin.reservation_left_sidebar_enabled')}
+          </Switch>
+          <Switch
+            state={this.config.reservationRightSidebarEnabled}
+            onchange={(value: boolean) => (this.config.reservationRightSidebarEnabled = value)}
+          >
+            {app.translator.trans('lowseekai-advertising.admin.reservation_right_sidebar_enabled')}
+          </Switch>
         </div>
         {this.numberField('leftSidebarSlots', 'lowseekai-advertising.admin.left_sidebar_slots', 1, 50)}
         {this.numberField('leftSidebarDisplaySlots', 'lowseekai-advertising.admin.left_sidebar_display_slots', 1, 50)}
@@ -294,8 +342,11 @@ class AdvertisingSettingsPage extends ExtensionPage {
       | 'sidebarPricePerMonth'
       | 'leftSidebarPricePerMonth'
       | 'rightSidebarPricePerMonth'
-      | 'topPricePerMonth'
-      | 'maxImageSizeKb'
+       | 'topPricePerMonth'
+       | 'reservationLeadDays'
+       | 'reservationWaitDays'
+       | 'reservationMaxQueue'
+       | 'maxImageSizeKb'
     >,
     labelKey: string,
     min: number,
@@ -379,6 +430,21 @@ class AdvertisingSettingsPage extends ExtensionPage {
               })}
             </span>
           ) : null}
+          {ad.isReservation ? (
+            <span className="LowseekaiAdvertisingAdmin-reservationInfo">
+              {app.translator.trans('lowseekai-advertising.admin.reservation_label')}
+              {ad.reservationEstimatedStartAt
+                ? ` · ${app.translator.trans('lowseekai-advertising.admin.reservation_estimated_start_at', {
+                    date: this.formatDate(ad.reservationEstimatedStartAt),
+                  })}`
+                : ''}
+              {ad.reservationWaitUntil
+                ? ` · ${app.translator.trans('lowseekai-advertising.admin.reservation_wait_until', {
+                    date: this.formatDate(ad.reservationWaitUntil),
+                  })}`
+                : ''}
+            </span>
+          ) : null}
           {ad.status === 'approved' ? (
             <span>
               {app.translator.trans(`lowseekai-advertising.admin.auto_renewal_status_${ad.autoRenewStatus || 'disabled'}`)}
@@ -441,6 +507,17 @@ class AdvertisingSettingsPage extends ExtensionPage {
                 {app.translator.trans('lowseekai-advertising.admin.hide')}
               </Button>
             ) : null}
+            {ad.status === 'reserved' ? (
+              <Button
+                className="Button Button--danger"
+                icon="fas fa-times"
+                loading={busy}
+                disabled={busy}
+                onclick={() => this.updateAd(ad, 'cancelled')}
+              >
+                {app.translator.trans('lowseekai-advertising.admin.cancel_reservation')}
+              </Button>
+            ) : null}
             {canRestore ? (
               <Button
                 className="Button Button--primary"
@@ -489,7 +566,11 @@ class AdvertisingSettingsPage extends ExtensionPage {
       await this.loadAds();
       app.alerts.show(
         { type: 'success' },
-        app.translator.trans(`lowseekai-advertising.admin.${status === 'approved' ? 'approved' : status === 'hidden' ? 'hidden' : 'rejected'}`)
+        app.translator.trans(
+          `lowseekai-advertising.admin.${
+            status === 'approved' ? 'approved' : status === 'hidden' ? 'hidden' : status === 'cancelled' ? 'cancelled' : 'rejected'
+          }`
+        )
       );
     } catch (error) {
       app.alerts.show({ type: 'error' }, this.errorMessage(error));
@@ -556,7 +637,7 @@ class AdvertisingSettingsPage extends ExtensionPage {
   }
 
   canEditPosition(ad: AdRecord) {
-    return ['pending', 'approved'].includes(ad.status);
+    return !ad.isReservation && ['pending', 'approved'].includes(ad.status);
   }
 
   slotCapacity(slotKey: string) {
@@ -570,6 +651,14 @@ class AdvertisingSettingsPage extends ExtensionPage {
     if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(value)) return value;
 
     return new Date(value).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+  }
+
+  parseDate(value: string) {
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(value)) {
+      return new Date(value.replace(' ', 'T') + '+08:00').getTime();
+    }
+
+    return new Date(value).getTime();
   }
 
   errorMessage(error: any) {
