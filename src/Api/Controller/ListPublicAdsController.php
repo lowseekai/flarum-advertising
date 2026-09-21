@@ -64,9 +64,33 @@ class ListPublicAdsController implements RequestHandlerInterface
         })->values();
 
         return new JsonResponse([
-            'data' => $ads->map(fn (Ad $ad) => $this->serializer->serialize($ad))->values()->all(),
+            'data' => $ads->map(fn (Ad $ad) => $this->serializePublicAd($ad, $actor))->values()->all(),
             'meta' => ['slots' => $this->slotMeta($actor)],
         ]);
+    }
+
+    protected function serializePublicAd(Ad $ad, User $actor): array
+    {
+        $data = $this->serializer->serialize($ad);
+        $data['canReserve'] = $this->canReserveAd($ad, $actor);
+
+        return $data;
+    }
+
+    protected function canReserveAd(Ad $ad, User $actor): bool
+    {
+        if ($actor->isGuest() || ! $ad->ends_at || (bool) $ad->auto_renew_enabled) {
+            return false;
+        }
+
+        $slotKey = $this->settings->normalizeSlotKey((string) $ad->slot_key);
+        $now = Carbon::now('Asia/Shanghai');
+
+        if ($ad->ends_at->lte($now) || $ad->ends_at->gt($now->copy()->addDays($this->settings->reservationLeadDays()))) {
+            return false;
+        }
+
+        return $this->ads->canReserveSlot($slotKey, $actor);
     }
 
     protected function slotMeta(User $actor): array

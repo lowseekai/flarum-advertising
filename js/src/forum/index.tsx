@@ -41,6 +41,7 @@ type AdRecord = {
   targetUrl: string;
   durationLabel: string;
   totalPrice: number;
+  canReserve?: boolean;
   renewalPrice: number;
   status: string;
   isReservation?: boolean;
@@ -124,12 +125,11 @@ function fallbackSlots(): SlotConfig[] {
   ];
 }
 
-class AdCard extends Component<{ ad: AdRecord; placement?: string }> {
+class AdCard extends Component<{ ad: AdRecord; placement?: string; onReserve?: (ad: AdRecord) => void }> {
   view() {
     const ad = this.attrs.ad;
     const placement = (this.attrs.placement || ad.slotKey).replace('_', '-');
-
-    return (
+    const card = (
       <a
         className={`LowseekaiAdvertising-card LowseekaiAdvertising-card--${placement}`}
         href={ad.targetUrl}
@@ -140,6 +140,29 @@ class AdCard extends Component<{ ad: AdRecord; placement?: string }> {
         <img src={ad.imageUrl} alt={ad.title} />
         <span>{ad.title}</span>
       </a>
+    );
+
+    if (!this.attrs.onReserve || !ad.canReserve) {
+      return card;
+    }
+
+    return (
+      <div className="LowseekaiAdvertising-cardWrap">
+        {card}
+        {ad.endsAt ? (
+          <span className="LowseekaiAdvertising-cardMeta">
+            {app.translator.trans('lowseekai-advertising.forum.ends_at', { date: ad.endsAt })}
+          </span>
+        ) : null}
+        <Button
+          type="button"
+          className="Button Button--secondary LowseekaiAdvertising-reserveButton"
+          icon="fas fa-clock"
+          onclick={() => this.attrs.onReserve?.(ad)}
+        >
+          {app.translator.trans('lowseekai-advertising.forum.reserve')}
+        </Button>
+      </div>
     );
   }
 }
@@ -219,6 +242,7 @@ type AutoRenewalModalAttrs = IInternalModalAttrs & {
   durationLabel: string;
   price: number;
   autoRenewalAvailable: boolean;
+  isReservation?: boolean;
   onConfirm: () => Promise<void> | void;
   onSubmitOnly: () => Promise<void> | void;
 };
@@ -231,6 +255,10 @@ class AutoRenewalConfirmationModal extends Modal<AutoRenewalModalAttrs> {
   }
 
   title() {
+    if (this.attrs.isReservation) {
+      return app.translator.trans('lowseekai-advertising.forum.submit_reservation_confirm_title');
+    }
+
     return app.translator.trans(
       this.attrs.autoRenewalAvailable ? 'lowseekai-advertising.forum.auto_renewal_confirm_title' : 'lowseekai-advertising.forum.submit_confirm_title'
     );
@@ -239,7 +267,13 @@ class AutoRenewalConfirmationModal extends Modal<AutoRenewalModalAttrs> {
   content() {
     const attrs = this.attrs;
     const currency = app.forum.attribute('lowseekaiAdvertisingCurrencyName') || '积分';
-    const body = attrs.autoRenewalAvailable
+    const body = attrs.isReservation
+      ? app.translator.trans('lowseekai-advertising.forum.submit_reservation_confirm_body', {
+          title: attrs.titleText,
+          price: attrs.price,
+          currency,
+        })
+      : attrs.autoRenewalAvailable
       ? app.translator.trans('lowseekai-advertising.forum.auto_renewal_confirm_body', {
           title: attrs.titleText,
           price: attrs.price,
@@ -307,7 +341,9 @@ class AutoRenewalConfirmationModal extends Modal<AutoRenewalModalAttrs> {
                 disabled={this.loadingAction !== null}
                 onclick={() => this.handleAction('submitOnly')}
               >
-                {app.translator.trans('lowseekai-advertising.forum.submit_confirm_action')}
+                {app.translator.trans(
+                  attrs.isReservation ? 'lowseekai-advertising.forum.submit_reservation_confirm_action' : 'lowseekai-advertising.forum.submit_confirm_action'
+                )}
               </Button>
             )}
           </div>
@@ -565,6 +601,50 @@ class AdvertisingPage extends Page {
     this.form.slotKey = slotKey;
   }
 
+  slotByKey(slotKey: string) {
+    return this.slotConfigs.find((slot) => slot.key === slotKey);
+  }
+
+  isReservationMode(slot: SlotConfig = this.selectedSlot()) {
+    const positions = slot.positions?.length
+      ? slot.positions
+      : Array.from({ length: slot.capacity }, (_, index) => ({
+          position: index + 1,
+          available: true,
+        }));
+
+    return !positions.some((position) => position.available) && Boolean(slot.reservable);
+  }
+
+  reservableSlots() {
+    return this.slotConfigs.filter((slot) => slot.enabled && Boolean(slot.reservable));
+  }
+
+  canReserveAd(ad: AdRecord) {
+    if (ad.canReserve) return true;
+
+    const slot = this.slotByKey(ad.slotKey);
+    if (!slot?.reservable || !ad.endsAt || ad.autoRenewEnabled) return false;
+
+    const endsAt = new Date(ad.endsAt.replace(' ', 'T'));
+    const leadDays = Number(app.forum.attribute('lowseekaiAdvertisingReservationLeadDays') || 15);
+
+    return endsAt.getTime() > Date.now() && endsAt.getTime() <= Date.now() + leadDays * 24 * 60 * 60 * 1000;
+  }
+
+  selectReservationSlot(slotKey: string) {
+    this.setSlot(slotKey);
+    m.redraw();
+
+    window.setTimeout(() => {
+      document.querySelector('.LowseekaiAdvertising-apply')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  }
+
+  reserveAd(ad: AdRecord) {
+    this.selectReservationSlot(ad.slotKey);
+  }
+
   async load() {
     this.loading = true;
 
@@ -618,7 +698,10 @@ class AdvertisingPage extends Page {
     return (
       <div className="LowseekaiAdvertisingPage-content">
         {app.forum.attribute('lowseekaiAdvertisingCanSubmit') ? (
-          this.applyForm()
+          [
+            this.reservationBanner(),
+            this.applyForm(),
+          ]
         ) : (
           <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.no_permission')}</p>
         )}
@@ -628,11 +711,37 @@ class AdvertisingPage extends Page {
             <h2>{app.translator.trans('lowseekai-advertising.forum.active_ads')}</h2>
           </div>
           {this.ads.length ? (
-            this.ads.map((ad) => <AdCard ad={ad} key={ad.id} />)
+            <div className="LowseekaiAdvertising-cardGrid LowseekaiAdvertising-cardGrid--active">
+              {this.ads.map((ad) => (
+                <AdCard ad={{ ...ad, canReserve: this.canReserveAd(ad) }} onReserve={(ad) => this.reserveAd(ad)} key={ad.id} />
+              ))}
+            </div>
           ) : (
             <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.no_ads')}</p>
           )}
         </section>
+      </div>
+    );
+  }
+
+  reservationBanner() {
+    const slots = this.reservableSlots();
+    if (!slots.length) return null;
+
+    return (
+      <div className="LowseekaiAdvertising-reservationBanner">
+        <i className="fas fa-clock" aria-hidden="true" />
+        <div className="LowseekaiAdvertising-reservationBannerBody">
+          <strong>{app.translator.trans('lowseekai-advertising.forum.reservation_banner_title')}</strong>
+          <span>{app.translator.trans('lowseekai-advertising.forum.reservation_banner_intro')}</span>
+          <div className="LowseekaiAdvertising-reservationBannerSlots">
+            {slots.map((slot) => (
+              <button type="button" onclick={() => this.selectReservationSlot(slot.key)}>
+                {slot.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -645,7 +754,7 @@ class AdvertisingPage extends Page {
     const positions = this.availablePositions();
     const noPositions = !positions.some((position) => position.available);
     const selectedSlot = this.selectedSlot();
-    const canReserve = noPositions && Boolean(selectedSlot.reservable);
+    const canReserve = this.isReservationMode(selectedSlot);
     const cannotSubmitForSlot = noPositions && !canReserve;
 
     return (
@@ -728,7 +837,7 @@ class AdvertisingPage extends Page {
             <p className="helpText LowseekaiAdvertising-insufficient">{app.translator.trans('lowseekai-advertising.forum.insufficient_points')}</p>
           ) : null}
         </div>
-        {app.forum.attribute('lowseekaiAdvertisingAutoRenewalEnabled') ? (
+        {app.forum.attribute('lowseekaiAdvertisingAutoRenewalEnabled') && !canReserve ? (
           <div className="Form-group">
             <label>{app.translator.trans('lowseekai-advertising.forum.auto_renewal')}</label>
             <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.auto_renewal_submit_prompt_help')}</p>
@@ -741,7 +850,7 @@ class AdvertisingPage extends Page {
           disabled={this.submitting || insufficient || cannotSubmitForSlot}
           onclick={() => this.submit()}
         >
-          {app.translator.trans('lowseekai-advertising.forum.submit')}
+          {app.translator.trans(canReserve ? 'lowseekai-advertising.forum.submit_reservation' : 'lowseekai-advertising.forum.submit')}
         </Button>
       </section>
     );
@@ -752,80 +861,84 @@ class AdvertisingPage extends Page {
       <section className="LowseekaiAdvertising-my">
         <h2>{app.translator.trans('lowseekai-advertising.forum.my_ads')}</h2>
         {this.myAds.length ? (
-          this.myAds.map((ad) => (
-            <div className="LowseekaiAdvertising-myRow" key={ad.id}>
-              <img src={ad.imageUrl} alt={ad.title} />
-              <div className="LowseekaiAdvertising-myDetails">
-                <strong>{ad.title}</strong>
-                <span>
-                  {this.statusLabel(ad.status)}
-                  {ad.reviewNote ? ` · ${ad.reviewNote}` : ''}
-                </span>
-                <span>
-                  {ad.slotLabel} · {ad.durationLabel} · {ad.totalPrice} {app.forum.attribute('lowseekaiAdvertisingCurrencyName') || '积分'}
-                </span>
-                {ad.startsAt ? (
-                  <span>{app.translator.trans('lowseekai-advertising.forum.starts_at', { date: this.formatDate(ad.startsAt) })}</span>
-                ) : null}
-                {ad.endsAt ? <span>{app.translator.trans('lowseekai-advertising.forum.ends_at', { date: this.formatDate(ad.endsAt) })}</span> : null}
-                {ad.reservationEstimatedStartAt ? (
-                  <span>{app.translator.trans('lowseekai-advertising.forum.estimated_release_at', { date: this.formatDate(ad.reservationEstimatedStartAt) })}</span>
-                ) : null}
-                {ad.reservationWaitUntil ? (
-                  <span>{app.translator.trans('lowseekai-advertising.forum.reservation_wait_until', { date: this.formatDate(ad.reservationWaitUntil) })}</span>
-                ) : null}
-                {ad.status === 'approved' && ad.autoRenewStatus ? (
-                  <span className="LowseekaiAdvertising-autoRenewalStatus">
-                    {this.autoRenewalStatusLabel(ad.autoRenewStatus)}
-                    {ad.autoRenewPrice ? ` · ${ad.autoRenewPrice} ${app.forum.attribute('lowseekaiAdvertisingCurrencyName') || '积分'}` : ''}
-                    {ad.autoRenewLastAttemptAt
-                      ? ` · ${app.translator.trans('lowseekai-advertising.forum.auto_renewal_last_attempt', {
-                          date: this.formatDate(ad.autoRenewLastAttemptAt),
-                        })}`
-                      : ''}
+          <div className="LowseekaiAdvertising-cardGrid LowseekaiAdvertising-cardGrid--mine">
+            {this.myAds.map((ad) => (
+              <div className="LowseekaiAdvertising-myCard" key={ad.id}>
+                <img src={ad.imageUrl} alt={ad.title} />
+                <div className="LowseekaiAdvertising-myDetails">
+                  <strong>{ad.title}</strong>
+                  <span>
+                    {this.statusLabel(ad.status)}
+                    {ad.reviewNote ? ` · ${ad.reviewNote}` : ''}
                   </span>
-                ) : null}
-                {ad.status === 'approved' && app.forum.attribute('lowseekaiAdvertisingRenewalEnabled') ? (
-                  <Button
-                    type="button"
-                    className="Button Button--secondary LowseekaiAdvertising-renewButton"
-                    icon="fas fa-redo"
-                    loading={this.renewingAd === ad.id}
-                    disabled={this.renewingAd !== null}
-                    onclick={() => this.renew(ad)}
-                  >
-                    {app.translator.trans('lowseekai-advertising.forum.renew')}
-                  </Button>
-                ) : null}
-                {ad.status === 'approved' && (app.forum.attribute('lowseekaiAdvertisingAutoRenewalEnabled') || ad.autoRenewEnabled) ? (
-                  <Button
-                    type="button"
-                    className="Button Button--secondary LowseekaiAdvertising-autoRenewButton"
-                    icon={ad.autoRenewEnabled ? 'fas fa-toggle-on' : 'fas fa-toggle-off'}
-                    loading={this.autoRenewingAd === ad.id}
-                    disabled={this.autoRenewingAd !== null}
-                    onclick={() => this.toggleAutoRenewal(ad)}
-                  >
-                    {ad.autoRenewEnabled
-                      ? app.translator.trans('lowseekai-advertising.forum.auto_renewal_disable_button')
-                      : app.translator.trans('lowseekai-advertising.forum.auto_renewal_enable_button')}
-                  </Button>
-                ) : null}
-                {ad.isReservation && ['pending', 'reserved'].includes(ad.status) ? (
-                  <Button
-                    type="button"
-                    className="Button Button--secondary LowseekaiAdvertising-cancelReservationButton"
-                    icon="fas fa-times"
-                    loading={this.cancelingAd === ad.id}
-                    disabled={this.cancelingAd !== null}
-                    onclick={() => this.cancelReservation(ad)}
-                  >
-                    {app.translator.trans('lowseekai-advertising.forum.cancel_reservation')}
-                  </Button>
-                ) : null}
+                  <span>
+                    {ad.slotLabel} · {ad.durationLabel} · {ad.totalPrice} {app.forum.attribute('lowseekaiAdvertisingCurrencyName') || '积分'}
+                  </span>
+                  {ad.startsAt ? (
+                    <span>{app.translator.trans('lowseekai-advertising.forum.starts_at', { date: this.formatDate(ad.startsAt) })}</span>
+                  ) : null}
+                  {ad.endsAt ? <span>{app.translator.trans('lowseekai-advertising.forum.ends_at', { date: this.formatDate(ad.endsAt) })}</span> : null}
+                  {ad.reservationEstimatedStartAt ? (
+                    <span>{app.translator.trans('lowseekai-advertising.forum.estimated_release_at', { date: this.formatDate(ad.reservationEstimatedStartAt) })}</span>
+                  ) : null}
+                  {ad.reservationWaitUntil ? (
+                    <span>{app.translator.trans('lowseekai-advertising.forum.reservation_wait_until', { date: this.formatDate(ad.reservationWaitUntil) })}</span>
+                  ) : null}
+                  {ad.status === 'approved' && ad.autoRenewStatus ? (
+                    <span className="LowseekaiAdvertising-autoRenewalStatus">
+                      {this.autoRenewalStatusLabel(ad.autoRenewStatus)}
+                      {ad.autoRenewPrice ? ` · ${ad.autoRenewPrice} ${app.forum.attribute('lowseekaiAdvertisingCurrencyName') || '积分'}` : ''}
+                      {ad.autoRenewLastAttemptAt
+                        ? ` · ${app.translator.trans('lowseekai-advertising.forum.auto_renewal_last_attempt', {
+                            date: this.formatDate(ad.autoRenewLastAttemptAt),
+                          })}`
+                        : ''}
+                    </span>
+                  ) : null}
+                  <div className="LowseekaiAdvertising-myActions">
+                    {ad.status === 'approved' && app.forum.attribute('lowseekaiAdvertisingRenewalEnabled') ? (
+                      <Button
+                        type="button"
+                        className="Button Button--secondary LowseekaiAdvertising-renewButton"
+                        icon="fas fa-redo"
+                        loading={this.renewingAd === ad.id}
+                        disabled={this.renewingAd !== null}
+                        onclick={() => this.renew(ad)}
+                      >
+                        {app.translator.trans('lowseekai-advertising.forum.renew')}
+                      </Button>
+                    ) : null}
+                    {ad.status === 'approved' && (app.forum.attribute('lowseekaiAdvertisingAutoRenewalEnabled') || ad.autoRenewEnabled) ? (
+                      <Button
+                        type="button"
+                        className="Button Button--secondary LowseekaiAdvertising-autoRenewButton"
+                        icon={ad.autoRenewEnabled ? 'fas fa-toggle-on' : 'fas fa-toggle-off'}
+                        loading={this.autoRenewingAd === ad.id}
+                        disabled={this.autoRenewingAd !== null}
+                        onclick={() => this.toggleAutoRenewal(ad)}
+                      >
+                        {ad.autoRenewEnabled
+                          ? app.translator.trans('lowseekai-advertising.forum.auto_renewal_disable_button')
+                          : app.translator.trans('lowseekai-advertising.forum.auto_renewal_enable_button')}
+                      </Button>
+                    ) : null}
+                    {ad.isReservation && ['pending', 'reserved'].includes(ad.status) ? (
+                      <Button
+                        type="button"
+                        className="Button Button--secondary LowseekaiAdvertising-cancelReservationButton"
+                        icon="fas fa-times"
+                        loading={this.cancelingAd === ad.id}
+                        disabled={this.cancelingAd !== null}
+                        onclick={() => this.cancelReservation(ad)}
+                      >
+                        {app.translator.trans('lowseekai-advertising.forum.cancel_reservation')}
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))
+            ))}
+          </div>
         ) : (
           <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.no_my_ads')}</p>
         )}
@@ -945,12 +1058,15 @@ class AdvertisingPage extends Page {
       return;
     }
 
+    const isReservation = this.isReservationMode();
+
     app.modal.show(AutoRenewalConfirmationModal, {
       titleText: this.form.title,
       slotLabel: this.selectedSlot().label,
       durationLabel: this.selectedPlan().label,
       price: total,
-      autoRenewalAvailable: Boolean(app.forum.attribute('lowseekaiAdvertisingAutoRenewalEnabled')),
+      autoRenewalAvailable: !isReservation && Boolean(app.forum.attribute('lowseekaiAdvertisingAutoRenewalEnabled')),
+      isReservation,
       onConfirm: () => this.submitApplication(true),
       onSubmitOnly: () => this.submitApplication(false),
     });
