@@ -104,14 +104,26 @@ const DEFAULT_CONFIG: Config = {
   groups: [],
 };
 
+const sharedAdminState: {
+  config: Config;
+  configLoaded: boolean;
+  ads: AdRecord[];
+  adsLoaded: boolean;
+} = {
+  config: { ...DEFAULT_CONFIG },
+  configLoaded: false,
+  ads: [],
+  adsLoaded: false,
+};
+
 class AdvertisingSettingsPage extends ExtensionPage {
-  private ads: AdRecord[] = [];
+  private ads: AdRecord[] = sharedAdminState.ads;
   private loadingAds = true;
   private savingAd: number | null = null;
   private savingConfig = false;
-  private configLoaded = false;
+  private configLoaded = sharedAdminState.configLoaded;
   private refreshTimer: number | null = null;
-  private config: Config = { ...DEFAULT_CONFIG };
+  private config: Config = { ...sharedAdminState.config };
   private activeSection = 'pending';
   private editingAd: number | null = null;
   private editDraft: { title: string; targetUrl: string; imagePath: string; slotPosition: number | null } | null = null;
@@ -133,10 +145,24 @@ class AdvertisingSettingsPage extends ExtensionPage {
     return `${app.forum.attribute('apiUrl')}${path}`;
   }
 
+  hydrateFromSharedState() {
+    if (!this.configLoaded && sharedAdminState.configLoaded) {
+      this.config = { ...sharedAdminState.config };
+      this.configLoaded = true;
+    }
+
+    if (this.loadingAds && sharedAdminState.adsLoaded) {
+      this.ads = sharedAdminState.ads;
+      this.loadingAds = false;
+    }
+  }
+
   async loadConfig() {
     try {
       const response: any = await app.request({ method: 'GET', url: this.apiUrl('/advertising/admin/config') });
       this.config = { ...this.config, ...(response.data || {}) };
+      sharedAdminState.config = { ...this.config };
+      sharedAdminState.configLoaded = true;
       this.configLoaded = true;
     } catch (error) {
       app.alerts.show({ type: 'error' }, this.errorMessage(error));
@@ -151,6 +177,8 @@ class AdvertisingSettingsPage extends ExtensionPage {
     try {
       const response: any = await app.request({ method: 'GET', url: this.apiUrl('/advertising/admin/ads') });
       this.ads = Array.isArray(response.data) ? response.data : [];
+      sharedAdminState.ads = this.ads;
+      sharedAdminState.adsLoaded = true;
     } catch (error) {
       app.alerts.show({ type: 'error' }, this.errorMessage(error));
     } finally {
@@ -174,6 +202,8 @@ class AdvertisingSettingsPage extends ExtensionPage {
   }
 
   content() {
+    this.hydrateFromSharedState();
+
     const ads = this.currentAds();
 
     return (
@@ -545,6 +575,9 @@ class AdvertisingSettingsPage extends ExtensionPage {
         body: { data: { attributes: this.config } },
       });
       this.config = { ...this.config, ...(response.data || {}) };
+      sharedAdminState.config = { ...this.config };
+      sharedAdminState.configLoaded = true;
+      this.configLoaded = true;
       app.alerts.show({ type: 'success' }, app.translator.trans('lowseekai-advertising.admin.saved'));
     } catch (error) {
       app.alerts.show({ type: 'error' }, this.errorMessage(error));
