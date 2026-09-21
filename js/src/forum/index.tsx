@@ -62,6 +62,7 @@ type AdRecord = {
   endsAt?: string | null;
 };
 type AdvertisingNotificationData = {
+  applicantName?: string;
   title?: string;
   totalPrice?: number;
   status?: string;
@@ -180,7 +181,7 @@ class AdPendingReviewNotification extends Notification {
     const data = this.attrs.notification.content<AdvertisingNotificationData>() || {};
 
     return app.translator.trans('lowseekai-advertising.forum.notification_pending', {
-      user: this.attrs.notification.fromUser(),
+      user: data.applicantName || '',
       title: data.title || '',
       price: data.totalPrice || 0,
     });
