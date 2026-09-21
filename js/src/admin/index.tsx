@@ -119,6 +119,8 @@ const sharedAdminState: {
 class AdvertisingSettingsPage extends ExtensionPage {
   private ads: AdRecord[] = sharedAdminState.ads;
   private loadingAds = true;
+  private loadingConfig = false;
+  private loadingAdsRequest = false;
   private savingAd: number | null = null;
   private savingConfig = false;
   private configLoaded = sharedAdminState.configLoaded;
@@ -131,9 +133,7 @@ class AdvertisingSettingsPage extends ExtensionPage {
 
   oninit(vnode: Mithril.Vnode) {
     super.oninit(vnode);
-    this.loadConfig();
-    this.loadAds();
-    this.refreshTimer = window.setInterval(() => this.loadAds(), 30000);
+    this.ensureStarted();
   }
 
   onremove() {
@@ -143,6 +143,20 @@ class AdvertisingSettingsPage extends ExtensionPage {
 
   apiUrl(path: string) {
     return `${app.forum.attribute('apiUrl')}${path}`;
+  }
+
+  ensureStarted() {
+    if (!this.configLoaded && !this.loadingConfig) {
+      this.loadConfig();
+    }
+
+    if (this.loadingAds && !this.loadingAdsRequest) {
+      this.loadAds();
+    }
+
+    if (this.refreshTimer === null) {
+      this.refreshTimer = window.setInterval(() => this.loadAds(), 30000);
+    }
   }
 
   async getJson(path: string) {
@@ -173,6 +187,8 @@ class AdvertisingSettingsPage extends ExtensionPage {
   }
 
   async loadConfig() {
+    this.loadingConfig = true;
+
     try {
       const response: any = await this.getJson('/advertising/admin/config');
       this.config = { ...this.config, ...(response.data || {}) };
@@ -182,12 +198,14 @@ class AdvertisingSettingsPage extends ExtensionPage {
     } catch (error) {
       app.alerts.show({ type: 'error' }, this.errorMessage(error));
     } finally {
+      this.loadingConfig = false;
       m.redraw();
     }
   }
 
   async loadAds() {
     this.loadingAds = true;
+    this.loadingAdsRequest = true;
 
     try {
       const response: any = await this.getJson('/advertising/admin/ads');
@@ -198,6 +216,7 @@ class AdvertisingSettingsPage extends ExtensionPage {
       app.alerts.show({ type: 'error' }, this.errorMessage(error));
     } finally {
       this.loadingAds = false;
+      this.loadingAdsRequest = false;
       m.redraw();
     }
   }
@@ -217,6 +236,7 @@ class AdvertisingSettingsPage extends ExtensionPage {
   }
 
   content() {
+    this.ensureStarted();
     this.hydrateFromSharedState();
 
     const ads = this.currentAds();
