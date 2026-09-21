@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Lowseekai\Advertising\Support;
 
+use Carbon\CarbonInterface;
 use Lowseekai\Advertising\Model\Ad;
 
 class AdSerializer
@@ -36,18 +37,18 @@ class AdSerializer
             'autoRenewEnabled' => (bool) $ad->auto_renew_enabled,
             'autoRenewStatus' => (string) ($ad->auto_renew_status ?: 'disabled'),
             'autoRenewPrice' => $ad->auto_renew_price !== null ? (int) $ad->auto_renew_price : null,
-            'autoRenewLastAttemptAt' => $ad->auto_renew_last_attempt_at?->toISOString(),
+            'autoRenewLastAttemptAt' => $this->dateTime($ad->auto_renew_last_attempt_at),
             'autoRenewFailureReason' => $ad->auto_renew_failure_reason,
-            'autoRenewDisabledAt' => $ad->auto_renew_disabled_at?->toISOString(),
-            'nextAutoRenewAt' => $ad->ends_at?->copy()->subDay()->toISOString(),
+            'autoRenewDisabledAt' => $this->dateTime($ad->auto_renew_disabled_at),
+            'nextAutoRenewAt' => $this->dateTime($ad->ends_at?->copy()->subDay()),
             'status' => (string) $ad->status,
             'isVisible' => (bool) $ad->is_visible,
             'sortOrder' => (int) $ad->sort_order,
-            'startsAt' => $ad->starts_at?->toISOString(),
-            'endsAt' => $ad->ends_at?->toISOString(),
+            'startsAt' => $this->dateTime($ad->starts_at),
+            'endsAt' => $this->dateTime($ad->ends_at),
             'reviewNote' => $ad->review_note,
-            'createdAt' => $ad->created_at?->toISOString(),
-            'updatedAt' => $ad->updated_at?->toISOString(),
+            'createdAt' => $this->dateTime($ad->created_at),
+            'updatedAt' => $this->dateTime($ad->updated_at),
             'user' => $user ? [
                 'id' => (int) $user->id,
                 'username' => (string) $user->username,
@@ -87,5 +88,10 @@ class AdSerializer
         $planKey = $ad->duration_plan ?: $this->durationPlan((int) $ad->duration_days);
 
         return (int) (AdvertisingSettings::DURATION_PLANS[$planKey]['months'] ?? 1);
+    }
+
+    protected function dateTime(?CarbonInterface $date): ?string
+    {
+        return $date?->timezone('Asia/Shanghai')->format('Y-m-d H:i:s');
     }
 }

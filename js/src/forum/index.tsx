@@ -193,7 +193,6 @@ class AdReviewedNotification extends Notification {
 type AutoRenewalModalAttrs = IInternalModalAttrs & {
   titleText: string;
   slotLabel: string;
-  slotPosition: number;
   durationLabel: string;
   price: number;
   autoRenewalAvailable: boolean;
@@ -233,9 +232,6 @@ class AutoRenewalConfirmationModal extends Modal<AutoRenewalModalAttrs> {
     return (
       <div className="Modal-body LowseekaiAdvertising-confirmBody">
         <div className="LowseekaiAdvertising-confirmIntro">
-          <span className="LowseekaiAdvertising-confirmIntroIcon" aria-hidden="true">
-            <i className={`icon ${attrs.autoRenewalAvailable ? 'fas fa-sync-alt' : 'fas fa-paper-plane'}`} />
-          </span>
           <div className="LowseekaiAdvertising-confirmIntroContent">
             <strong className="LowseekaiAdvertising-confirmIntroTitle">{attrs.titleText}</strong>
             <p>{body}</p>
@@ -244,9 +240,7 @@ class AutoRenewalConfirmationModal extends Modal<AutoRenewalModalAttrs> {
         <dl className="LowseekaiAdvertising-confirmSummary">
           <div className="LowseekaiAdvertising-confirmSummaryItem LowseekaiAdvertising-confirmSummaryItem--wide">
             <dt>{app.translator.trans('lowseekai-advertising.forum.slot')}</dt>
-            <dd>
-              {attrs.slotLabel} · {app.translator.trans('lowseekai-advertising.forum.position_option', { position: attrs.slotPosition })}
-            </dd>
+            <dd>{attrs.slotLabel}</dd>
           </div>
           <div className="LowseekaiAdvertising-confirmSummaryItem">
             <dt>{app.translator.trans('lowseekai-advertising.forum.duration')}</dt>
@@ -362,9 +356,6 @@ class ConfirmationActionModal extends Modal<ConfirmationActionModalAttrs> {
     return (
       <div className="Modal-body LowseekaiAdvertising-confirmBody">
         <div className="LowseekaiAdvertising-confirmIntro">
-          <span className="LowseekaiAdvertising-confirmIntroIcon" aria-hidden="true">
-            <i className="icon fas fa-info-circle" />
-          </span>
           <div className="LowseekaiAdvertising-confirmIntroContent">
             <p>{attrs.bodyText}</p>
           </div>
@@ -479,7 +470,6 @@ class AdvertisingPage extends Page {
   private autoRenewingAd: number | null = null;
   private form = {
     slotKey: 'right_sidebar',
-    slotPosition: 1,
     title: '',
     targetUrl: '',
     durationPlan: '1_month',
@@ -549,8 +539,6 @@ class AdvertisingPage extends Page {
 
   setSlot(slotKey: string) {
     this.form.slotKey = slotKey;
-    const firstAvailable = this.availablePositions().find((position) => position.available);
-    this.form.slotPosition = firstAvailable?.position || 1;
   }
 
   async load() {
@@ -647,23 +635,7 @@ class AdvertisingPage extends Page {
               ))}
           </select>
         </div>
-        <div className="Form-group">
-          <label>{app.translator.trans('lowseekai-advertising.forum.position')}</label>
-          <select
-            className="FormControl"
-            value={this.form.slotPosition}
-            onchange={(event: any) => (this.form.slotPosition = Number(event.target.value))}
-            disabled={noPositions}
-          >
-            {positions.map((position) => (
-              <option value={position.position} disabled={!position.available}>
-                {app.translator.trans('lowseekai-advertising.forum.position_option', { position: position.position })}
-                {!position.available ? `（${app.translator.trans('lowseekai-advertising.forum.position_unavailable')}）` : ''}
-              </option>
-            ))}
-          </select>
-          {noPositions ? <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.no_positions')}</p> : null}
-        </div>
+        {noPositions ? <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.no_positions')}</p> : null}
         <div className="Form-group">
           <label>{app.translator.trans('lowseekai-advertising.forum.title_label')}</label>
           <input className="FormControl" value={this.form.title} oninput={(event: any) => (this.form.title = event.target.value)} />
@@ -763,8 +735,7 @@ class AdvertisingPage extends Page {
                   {ad.reviewNote ? ` · ${ad.reviewNote}` : ''}
                 </span>
                 <span>
-                  {ad.slotLabel} · {app.translator.trans('lowseekai-advertising.forum.position_option', { position: ad.slotPosition || '-' })} ·{' '}
-                  {ad.durationLabel} · {ad.totalPrice} {app.forum.attribute('lowseekaiAdvertisingCurrencyName') || '积分'}
+                  {ad.slotLabel} · {ad.durationLabel} · {ad.totalPrice} {app.forum.attribute('lowseekaiAdvertisingCurrencyName') || '积分'}
                 </span>
                 {ad.startsAt ? (
                   <span>{app.translator.trans('lowseekai-advertising.forum.starts_at', { date: this.formatDate(ad.startsAt) })}</span>
@@ -854,10 +825,6 @@ class AdvertisingPage extends Page {
       confirmIcon: 'fas fa-redo',
       details: [
         { label: app.translator.trans('lowseekai-advertising.forum.slot'), value: ad.slotLabel },
-        {
-          label: app.translator.trans('lowseekai-advertising.forum.position'),
-          value: app.translator.trans('lowseekai-advertising.forum.position_option', { position: ad.slotPosition || '-' }),
-        },
         { label: app.translator.trans('lowseekai-advertising.forum.duration'), value: ad.durationLabel },
         {
           label: app.translator.trans('lowseekai-advertising.forum.auto_renewal_price'),
@@ -913,7 +880,6 @@ class AdvertisingPage extends Page {
     app.modal.show(AutoRenewalConfirmationModal, {
       titleText: this.form.title,
       slotLabel: this.selectedSlot().label,
-      slotPosition: this.form.slotPosition,
       durationLabel: this.selectedPlan().label,
       price: total,
       autoRenewalAvailable: Boolean(app.forum.attribute('lowseekaiAdvertisingAutoRenewalEnabled')),
@@ -941,7 +907,6 @@ class AdvertisingPage extends Page {
       app.alerts.show({ type: 'success' }, app.translator.trans('lowseekai-advertising.forum.pending_success'));
       this.form = {
         slotKey: this.form.slotKey,
-        slotPosition: this.form.slotPosition,
         title: '',
         targetUrl: '',
         durationPlan: '1_month',
@@ -965,10 +930,6 @@ class AdvertisingPage extends Page {
     const renewalPrice = ad.autoRenewPrice || ad.renewalPrice || ad.totalPrice;
     const details: ConfirmationDetail[] = [
       { label: app.translator.trans('lowseekai-advertising.forum.slot'), value: ad.slotLabel },
-      {
-        label: app.translator.trans('lowseekai-advertising.forum.position'),
-        value: app.translator.trans('lowseekai-advertising.forum.position_option', { position: ad.slotPosition || '-' }),
-      },
       {
         label: app.translator.trans('lowseekai-advertising.forum.auto_renewal_price'),
         value: `${renewalPrice} ${currency}`,
@@ -1036,6 +997,8 @@ class AdvertisingPage extends Page {
   }
 
   formatDate(value: string) {
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(value)) return value;
+
     return new Date(value).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
   }
 

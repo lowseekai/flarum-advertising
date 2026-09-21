@@ -33,15 +33,13 @@ class AdReviewedBlueprint implements BlueprintInterface, AlertableInterface, Mai
 
     public function getData(): array
     {
-        $startsAt = $this->ad->starts_at?->timezone('Asia/Shanghai')->format('Y-m-d H:i');
-        $endsAt = $this->ad->ends_at?->timezone('Asia/Shanghai')->format('Y-m-d H:i');
+        $startsAt = $this->ad->starts_at?->timezone('Asia/Shanghai')->format('Y-m-d H:i:s');
+        $endsAt = $this->ad->ends_at?->timezone('Asia/Shanghai')->format('Y-m-d H:i:s');
 
         return [
             'adId' => (int) $this->ad->id,
             'title' => (string) $this->ad->title,
             'slotLabel' => AdvertisingSettings::slotLabel((string) $this->ad->slot_key),
-            'slotPosition' => $this->ad->slot_position !== null ? (int) $this->ad->slot_position : null,
-            'position' => $this->ad->slot_position !== null ? (int) $this->ad->slot_position : null,
             'status' => (string) $this->ad->status,
             'totalPrice' => (int) $this->ad->total_price,
             'reviewNote' => (string) ($this->ad->review_note ?? ''),

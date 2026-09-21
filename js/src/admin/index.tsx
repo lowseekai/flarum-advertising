@@ -14,6 +14,7 @@ type AdRecord = {
   imagePath?: string;
   imageUrl: string;
   targetUrl: string;
+  slotKey: string;
   slotLabel: string;
   slotPosition?: number | null;
   durationLabel: string;
@@ -92,7 +93,7 @@ class AdvertisingSettingsPage extends ExtensionPage {
   private config: Config = { ...DEFAULT_CONFIG };
   private activeSection = 'pending';
   private editingAd: number | null = null;
-  private editDraft: { title: string; targetUrl: string; imagePath: string } | null = null;
+  private editDraft: { title: string; targetUrl: string; imagePath: string; slotPosition: number | null } | null = null;
   private uploadingEditAd: number | null = null;
 
   oninit(vnode: Mithril.Vnode) {
@@ -334,6 +335,17 @@ class AdvertisingSettingsPage extends ExtensionPage {
                 value={this.editDraft.targetUrl}
                 oninput={(event: any) => (this.editDraft!.targetUrl = event.target.value)}
               />
+              {this.canEditPosition(ad) ? (
+                <select
+                  className="FormControl"
+                  value={this.editDraft.slotPosition || 1}
+                  onchange={(event: any) => (this.editDraft!.slotPosition = Number(event.target.value))}
+                >
+                  {this.positionOptions(ad).map((position) => (
+                    <option value={position}>{app.translator.trans('lowseekai-advertising.admin.position_option', { position })}</option>
+                  ))}
+                </select>
+              ) : null}
               <div className="LowseekaiAdvertisingAdmin-editUpload">
                 <input
                   type="file"
@@ -363,7 +375,7 @@ class AdvertisingSettingsPage extends ExtensionPage {
           {ad.endsAt ? (
             <span>
               {app.translator.trans('lowseekai-advertising.admin.ends_at', {
-                date: new Date(ad.endsAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }),
+                date: this.formatDate(ad.endsAt),
               })}
             </span>
           ) : null}
@@ -373,7 +385,7 @@ class AdvertisingSettingsPage extends ExtensionPage {
               {ad.autoRenewPrice ? ` · ${ad.autoRenewPrice} ${this.config.currencyName}` : ''}
               {ad.nextAutoRenewAt
                 ? ` · ${app.translator.trans('lowseekai-advertising.admin.next_auto_renew_at', {
-                    date: new Date(ad.nextAutoRenewAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }),
+                    date: this.formatDate(ad.nextAutoRenewAt),
                   })}`
                 : ''}
               {ad.autoRenewFailureReason ? ` · ${ad.autoRenewFailureReason}` : ''}
@@ -489,7 +501,7 @@ class AdvertisingSettingsPage extends ExtensionPage {
 
   startEdit(ad: AdRecord) {
     this.editingAd = ad.id;
-    this.editDraft = { title: ad.title, targetUrl: ad.targetUrl, imagePath: ad.imagePath || '' };
+    this.editDraft = { title: ad.title, targetUrl: ad.targetUrl, imagePath: ad.imagePath || '', slotPosition: ad.slotPosition || 1 };
   }
 
   cancelEdit() {
@@ -520,10 +532,13 @@ class AdvertisingSettingsPage extends ExtensionPage {
 
     this.savingAd = ad.id;
     try {
+      const attributes: any = { ...this.editDraft };
+      if (!this.canEditPosition(ad)) delete attributes.slotPosition;
+
       await app.request({
         method: 'PATCH',
         url: this.apiUrl(`/advertising/admin/ads/${ad.id}`),
-        body: { data: { attributes: this.editDraft } },
+        body: { data: { attributes } },
       });
       this.cancelEdit();
       await this.loadAds();
@@ -534,6 +549,27 @@ class AdvertisingSettingsPage extends ExtensionPage {
       this.savingAd = null;
       m.redraw();
     }
+  }
+
+  positionOptions(ad: AdRecord) {
+    return Array.from({ length: this.slotCapacity(ad.slotKey) }, (_, index) => index + 1);
+  }
+
+  canEditPosition(ad: AdRecord) {
+    return ['pending', 'approved'].includes(ad.status);
+  }
+
+  slotCapacity(slotKey: string) {
+    if (slotKey === 'top') return this.config.topSlots || 4;
+    if (slotKey === 'left_sidebar') return this.config.leftSidebarSlots || 10;
+
+    return this.config.rightSidebarSlots || this.config.sidebarSlots || 10;
+  }
+
+  formatDate(value: string) {
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(value)) return value;
+
+    return new Date(value).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
   }
 
   errorMessage(error: any) {

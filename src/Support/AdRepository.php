@@ -30,7 +30,6 @@ class AdRepository
         }
 
         $slotKey = $this->normalizeSlotKey($attributes['slotKey'] ?? 'sidebar');
-        $slotPosition = $this->normalizeSlotPosition($slotKey, $attributes['slotPosition'] ?? null);
         $durationPlanKey = $this->normalizeDurationPlan($attributes['durationPlan'] ?? $attributes['durationDays'] ?? '1_month');
         $durationPlan = $this->settings->durationPlan($durationPlanKey);
         $totalPrice = $this->totalPrice($slotKey, $durationPlanKey);
@@ -40,8 +39,8 @@ class AdRepository
         // Do not reserve points while pending; approval rechecks atomically.
         $this->assertSufficientBalance($actor, $totalPrice);
 
-        $ad = $this->db->transaction(function () use ($actor, $attributes, $slotKey, $slotPosition, $durationPlanKey, $durationPlan, $totalPrice, $autoRenewEnabled) {
-            $this->assertSlotAvailable($slotKey, $slotPosition);
+        $ad = $this->db->transaction(function () use ($actor, $attributes, $slotKey, $durationPlanKey, $durationPlan, $totalPrice, $autoRenewEnabled) {
+            $slotPosition = $this->firstAvailableSlotPosition($slotKey);
 
             $ad = new Ad();
             $ad->user_id = (int) $actor->id;
@@ -252,12 +251,13 @@ class AdRepository
                 $ad->image_path = $this->normalizeImagePath($attributes['imagePath']);
             }
             if (array_key_exists('slotKey', $attributes)) {
-                $ad->slot_key = $this->normalizeSlotKey($attributes['slotKey']);
-                $pricingChanged = true;
+                $slotKey = $this->normalizeSlotKey($attributes['slotKey']);
+                if ($slotKey !== $this->normalizeSlotKey((string) $ad->slot_key)) {
+                    throw new ValidationException(['slotKey' => '广告不能跨区域移动。']);
+                }
             }
             if (array_key_exists('slotPosition', $attributes)) {
-                $ad->slot_position = $this->normalizeSlotPosition($ad->slot_key, $attributes['slotPosition']);
-                $ad->sort_order = (int) $ad->slot_position;
+                $this->moveWithinSlot($ad, $attributes['slotPosition']);
             }
             if (array_key_exists('durationPlan', $attributes) || array_key_exists('durationDays', $attributes)) {
                 $planKey = $this->normalizeDurationPlan($attributes['durationPlan'] ?? $attributes['durationDays']);
@@ -521,6 +521,45 @@ class AdRepository
         if ($query->exists()) {
             throw new ValidationException(['slotPosition' => '该广告位置已被占用，请选择其他位置。']);
         }
+    }
+
+    protected function moveWithinSlot(Ad $ad, mixed $targetPosition): void
+    {
+        if (! in_array((string) $ad->status, ['pending', 'approved'], true)) {
+            throw new ValidationException(['slotPosition' => '只有待审核或展示中的广告可以调整展示位置。']);
+        }
+
+        $slotKey = $this->normalizeSlotKey((string) $ad->slot_key);
+        $targetPosition = $this->normalizeSlotPosition($slotKey, $targetPosition);
+        $currentPosition = $ad->slot_position !== null ? (int) $ad->slot_position : null;
+
+        if ($currentPosition === $targetPosition) {
+            $ad->slot_position = $targetPosition;
+            $ad->sort_order = $targetPosition;
+
+            return;
+        }
+
+        $occupyingAd = Ad::query()
+            ->where('slot_key', $slotKey)
+            ->where('slot_position', $targetPosition)
+            ->whereIn('status', ['pending', 'approved'])
+            ->where('id', '<>', (int) $ad->id)
+            ->lockForUpdate()
+            ->first();
+
+        if ($occupyingAd && $currentPosition === null) {
+            throw new ValidationException(['slotPosition' => '该广告没有当前位置，无法与目标位置交换。']);
+        }
+
+        if ($occupyingAd) {
+            $occupyingAd->slot_position = $currentPosition;
+            $occupyingAd->sort_order = $currentPosition;
+            $occupyingAd->save();
+        }
+
+        $ad->slot_position = $targetPosition;
+        $ad->sort_order = $targetPosition;
     }
 
     protected function normalizeSlotPosition(string $slotKey, mixed $value): int

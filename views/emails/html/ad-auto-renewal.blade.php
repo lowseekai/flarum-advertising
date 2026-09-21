@@ -17,7 +17,6 @@
             '{title}' => $blueprint->ad->title,
             '{amount}' => $blueprint->amount,
             '{slot}' => $blueprint->getData()['slotLabel'],
-            '{position}' => $blueprint->getData()['slotPosition'] ?? '-',
             '{endsAt}' => $blueprint->getData()['endsAt'] ?? '-',
             '{reason}' => $blueprint->reason ?: '-',
         ]

@@ -70,8 +70,6 @@ class AdPendingReviewBlueprint implements BlueprintInterface, AlertableInterface
             'adId' => (int) $this->ad->id,
             'title' => (string) $this->ad->title,
             'slotLabel' => AdvertisingSettings::slotLabel((string) $this->ad->slot_key),
-            'slotPosition' => $this->ad->slot_position !== null ? (int) $this->ad->slot_position : null,
-            'position' => $this->ad->slot_position !== null ? (int) $this->ad->slot_position : null,
             'totalPrice' => (int) $this->ad->total_price,
         ];
     }

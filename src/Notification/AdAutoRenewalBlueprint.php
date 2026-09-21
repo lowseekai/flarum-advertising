@@ -41,9 +41,8 @@ class AdAutoRenewalBlueprint implements BlueprintInterface, AlertableInterface, 
             'event' => $this->event,
             'amount' => $this->amount,
             'slotLabel' => AdvertisingSettings::slotLabel((string) $this->ad->slot_key),
-            'slotPosition' => $this->ad->slot_position !== null ? (int) $this->ad->slot_position : null,
-            'startsAt' => $this->ad->starts_at?->timezone('Asia/Shanghai')->format('Y-m-d H:i'),
-            'endsAt' => $this->ad->ends_at?->timezone('Asia/Shanghai')->format('Y-m-d H:i'),
+            'startsAt' => $this->ad->starts_at?->timezone('Asia/Shanghai')->format('Y-m-d H:i:s'),
+            'endsAt' => $this->ad->ends_at?->timezone('Asia/Shanghai')->format('Y-m-d H:i:s'),
             'reason' => $this->reason ?: '',
         ];
     }

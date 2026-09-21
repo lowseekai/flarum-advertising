@@ -156,7 +156,7 @@ lowseekai-advertising:
     notification_pending_label: "广告申请"
     notification_reviewed_label: "广告审核结果"
     notification_pending: "用户 {user} 提交了广告申请：{title}，预计消耗 {price} 积分。"
-    notification_approved: "你的广告“{title}”已通过审核，已扣除 {price} 积分。广告位：{slot}，广告位置：{position}，生效时间：{startsAt}，到期时间：{endsAt}。"
+    notification_approved: "你的广告“{title}”已通过审核，已扣除 {price} 积分。广告位：{slot}，生效时间：{startsAt}，到期时间：{endsAt}。"
     notification_rejected: "你的广告“{title}”未通过审核。"
     notification_rejected_with_note: "你的广告“{title}”未通过审核。备注：{note}"
     notification_auto_renewal_label: "广告自动续费"
@@ -172,7 +172,6 @@ lowseekai-advertising:
 
         广告标题：{title}
         广告位：{slot}
-        广告位置：{position}
         预计消耗：{price} 积分
 
         请登录论坛后台进行审核。
@@ -181,7 +180,7 @@ lowseekai-advertising:
       rejected_subject: "广告申请未通过：{title}"
       approved_body: |
         你的广告“{title}”已通过审核，已扣除 {price} 积分。
-        广告位：{slot}，广告位置：{position}
+        广告位：{slot}
         生效时间：{startsAt}
         到期时间：{endsAt}
       rejected_body: |
@@ -194,17 +193,17 @@ lowseekai-advertising:
       price_changed_subject: "自动续费已暂停：{title}"
       enabled_body: |
         广告“{title}”已开启自动续费。
-        广告位：{slot}，广告位置：{position}
+        广告位：{slot}
       succeeded_body: |
         你的广告“{title}”已自动续费。
         扣除积分：{amount}
-        广告位：{slot}，广告位置：{position}
+        广告位：{slot}
         新的到期时间：{endsAt}
       failed_body: |
         广告“{title}”自动续费失败，自动续费已停止。
-        广告位：{slot}，广告位置：{position}
+        广告位：{slot}
         原因：{reason}
       price_changed_body: |
         广告“{title}”因价格变化已暂停自动续费。
-        广告位：{slot}，广告位置：{position}
+        广告位：{slot}
         请手动续费并确认新的价格。

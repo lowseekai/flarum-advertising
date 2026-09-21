@@ -156,7 +156,7 @@ lowseekai-advertising:
     notification_pending_label: "Advertising applications"
     notification_reviewed_label: "Advertising review results"
     notification_pending: "User {user} submitted an advertisement: {title}. Estimated cost: {price} points."
-    notification_approved: "Your advertisement “{title}” was approved. {price} points were charged. Slot: {slot}, position: {position}, starts: {startsAt}, expires: {endsAt}."
+    notification_approved: "Your advertisement “{title}” was approved. {price} points were charged. Slot: {slot}, starts: {startsAt}, expires: {endsAt}."
     notification_rejected: "Your advertisement “{title}” was rejected."
     notification_rejected_with_note: "Your advertisement “{title}” was rejected. Note: {note}"
     notification_auto_renewal_label: "Advertising automatic renewal"
@@ -172,7 +172,6 @@ lowseekai-advertising:
 
         Advertisement: {title}
         Slot: {slot}
-        Position: {position}
         Estimated cost: {price} points
 
         Please sign in to the administration panel to review it.
@@ -181,7 +180,7 @@ lowseekai-advertising:
       rejected_subject: "Advertising application rejected: {title}"
       approved_body: |
         Your advertisement “{title}” was approved and {price} points were charged.
-        Slot: {slot}, position: {position}
+        Slot: {slot}
         Starts: {startsAt}
         Expires: {endsAt}
       rejected_body: |
@@ -194,17 +193,17 @@ lowseekai-advertising:
       price_changed_subject: "Automatic renewal paused: {title}"
       enabled_body: |
         Automatic renewal was enabled for “{title}”.
-        Slot: {slot}, position: {position}
+        Slot: {slot}
       succeeded_body: |
         Your advertisement “{title}” was renewed automatically.
         Charged: {amount} points
-        Slot: {slot}, position: {position}
+        Slot: {slot}
         New expiry: {endsAt}
       failed_body: |
         Automatic renewal for “{title}” failed and was stopped.
-        Slot: {slot}, position: {position}
+        Slot: {slot}
         Reason: {reason}
       price_changed_body: |
         Automatic renewal for “{title}” was paused because the price changed.
-        Slot: {slot}, position: {position}
+        Slot: {slot}
         Please confirm the new price by renewing the advertisement manually.
