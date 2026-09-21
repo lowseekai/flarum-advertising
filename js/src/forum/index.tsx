@@ -231,54 +231,75 @@ class AutoRenewalConfirmationModal extends Modal<AutoRenewalModalAttrs> {
         });
 
     return (
-      <div className="Modal-body">
-        <p>{body}</p>
-        <dl className="LowseekaiAdvertising-autoRenewalSummary">
-          <dt>{app.translator.trans('lowseekai-advertising.forum.slot')}</dt>
-          <dd>
-            {attrs.slotLabel} · {app.translator.trans('lowseekai-advertising.forum.position_option', { position: attrs.slotPosition })}
-          </dd>
-          <dt>{app.translator.trans('lowseekai-advertising.forum.duration')}</dt>
-          <dd>{attrs.durationLabel}</dd>
-          <dt>{app.translator.trans('lowseekai-advertising.forum.auto_renewal_price')}</dt>
-          <dd>
-            {attrs.price} {currency}
-          </dd>
+      <div className="Modal-body LowseekaiAdvertising-confirmBody">
+        <div className="LowseekaiAdvertising-confirmIntro">
+          <span className="LowseekaiAdvertising-confirmIntroIcon" aria-hidden="true">
+            <i className={attrs.autoRenewalAvailable ? 'fas fa-sync-alt' : 'fas fa-paper-plane'} />
+          </span>
+          <div className="LowseekaiAdvertising-confirmIntroContent">
+            <strong className="LowseekaiAdvertising-confirmIntroTitle">{attrs.titleText}</strong>
+            <p>{body}</p>
+          </div>
+        </div>
+        <dl className="LowseekaiAdvertising-confirmSummary">
+          <div className="LowseekaiAdvertising-confirmSummaryItem LowseekaiAdvertising-confirmSummaryItem--wide">
+            <dt>{app.translator.trans('lowseekai-advertising.forum.slot')}</dt>
+            <dd>
+              {attrs.slotLabel} · {app.translator.trans('lowseekai-advertising.forum.position_option', { position: attrs.slotPosition })}
+            </dd>
+          </div>
+          <div className="LowseekaiAdvertising-confirmSummaryItem">
+            <dt>{app.translator.trans('lowseekai-advertising.forum.duration')}</dt>
+            <dd>{attrs.durationLabel}</dd>
+          </div>
+          <div className="LowseekaiAdvertising-confirmSummaryItem LowseekaiAdvertising-confirmSummaryItem--price">
+            <dt>{app.translator.trans('lowseekai-advertising.forum.auto_renewal_price')}</dt>
+            <dd>
+              {attrs.price} {currency}
+            </dd>
+          </div>
         </dl>
-        <div className="Form-controls">
-          {attrs.autoRenewalAvailable ? (
-            [
+        <div className="Form-controls LowseekaiAdvertising-confirmActions">
+          <div className="LowseekaiAdvertising-confirmActionGroup">
+            {attrs.autoRenewalAvailable ? (
+              [
+                <Button
+                  className="Button Button--primary LowseekaiAdvertising-confirmPrimary"
+                  icon="fas fa-sync-alt"
+                  loading={this.loadingAction === 'confirm'}
+                  disabled={this.loadingAction !== null}
+                  onclick={() => this.handleAction('confirm')}
+                >
+                  {app.translator.trans('lowseekai-advertising.forum.auto_renewal_confirm')}
+                </Button>,
+                <Button
+                  className="Button Button--secondary LowseekaiAdvertising-confirmSecondary"
+                  icon="fas fa-paper-plane"
+                  loading={this.loadingAction === 'submitOnly'}
+                  disabled={this.loadingAction !== null}
+                  onclick={() => this.handleAction('submitOnly')}
+                >
+                  {app.translator.trans('lowseekai-advertising.forum.auto_renewal_submit_only')}
+                </Button>,
+              ]
+            ) : (
               <Button
-                className="Button Button--primary"
-                icon="fas fa-sync-alt"
-                loading={this.loadingAction === 'confirm'}
-                disabled={this.loadingAction !== null}
-                onclick={() => this.handleAction('confirm')}
-              >
-                {app.translator.trans('lowseekai-advertising.forum.auto_renewal_confirm')}
-              </Button>,
-              <Button
-                className="Button Button--secondary"
+                className="Button Button--primary LowseekaiAdvertising-confirmPrimary"
                 icon="fas fa-paper-plane"
                 loading={this.loadingAction === 'submitOnly'}
                 disabled={this.loadingAction !== null}
                 onclick={() => this.handleAction('submitOnly')}
               >
-                {app.translator.trans('lowseekai-advertising.forum.auto_renewal_submit_only')}
-              </Button>,
-            ]
-          ) : (
-            <Button
-              className="Button Button--primary"
-              icon="fas fa-paper-plane"
-              loading={this.loadingAction === 'submitOnly'}
-              disabled={this.loadingAction !== null}
-              onclick={() => this.handleAction('submitOnly')}
-            >
-              {app.translator.trans('lowseekai-advertising.forum.submit_confirm_action')}
-            </Button>
-          )}
-          <Button className="Button Button--link" icon="fas fa-times" disabled={this.loadingAction !== null} onclick={() => this.hide()}>
+                {app.translator.trans('lowseekai-advertising.forum.submit_confirm_action')}
+              </Button>
+            )}
+          </div>
+          <Button
+            className="Button Button--link LowseekaiAdvertising-confirmCancel"
+            icon="fas fa-times"
+            disabled={this.loadingAction !== null}
+            onclick={() => this.hide()}
+          >
             {app.translator.trans('lowseekai-advertising.forum.auto_renewal_cancel')}
           </Button>
         </div>
@@ -310,6 +331,7 @@ class AutoRenewalConfirmationModal extends Modal<AutoRenewalModalAttrs> {
 type ConfirmationDetail = {
   label: Mithril.Children;
   value: Mithril.Children;
+  emphasis?: boolean;
 };
 
 type ConfirmationActionModalAttrs = IInternalModalAttrs & {
@@ -338,24 +360,46 @@ class ConfirmationActionModal extends Modal<ConfirmationActionModalAttrs> {
     const attrs = this.attrs;
 
     return (
-      <div className="Modal-body">
-        <p>{attrs.bodyText}</p>
+      <div className="Modal-body LowseekaiAdvertising-confirmBody">
+        <div className="LowseekaiAdvertising-confirmIntro">
+          <span className="LowseekaiAdvertising-confirmIntroIcon" aria-hidden="true">
+            <i className="fas fa-circle-info" />
+          </span>
+          <div className="LowseekaiAdvertising-confirmIntroContent">
+            <p>{attrs.bodyText}</p>
+          </div>
+        </div>
         {attrs.details?.length ? (
-          <dl className="LowseekaiAdvertising-autoRenewalSummary">
-            {attrs.details.map((detail, index) => [<dt key={`label-${index}`}>{detail.label}</dt>, <dd key={`value-${index}`}>{detail.value}</dd>])}
+          <dl className="LowseekaiAdvertising-confirmSummary">
+            {attrs.details.map((detail, index) => (
+              <div
+                className={`LowseekaiAdvertising-confirmSummaryItem${detail.emphasis ? ' LowseekaiAdvertising-confirmSummaryItem--price' : ''}`}
+                key={`detail-${index}`}
+              >
+                <dt>{detail.label}</dt>
+                <dd>{detail.value}</dd>
+              </div>
+            ))}
           </dl>
         ) : null}
-        <div className="Form-controls">
+        <div className="Form-controls LowseekaiAdvertising-confirmActions">
+          <div className="LowseekaiAdvertising-confirmActionGroup">
+            <Button
+              className={`${attrs.confirmClassName || 'Button Button--primary'} LowseekaiAdvertising-confirmPrimary`}
+              icon={attrs.confirmIcon || 'fas fa-check'}
+              loading={this.loading}
+              disabled={this.loading}
+              onclick={() => this.handlePrimaryAction()}
+            >
+              {attrs.confirmText}
+            </Button>
+          </div>
           <Button
-            className={attrs.confirmClassName || 'Button Button--primary'}
-            icon={attrs.confirmIcon || 'fas fa-check'}
-            loading={this.loading}
+            className="Button Button--link LowseekaiAdvertising-confirmCancel"
+            icon="fas fa-times"
             disabled={this.loading}
-            onclick={() => this.handlePrimaryAction()}
+            onclick={() => this.hide()}
           >
-            {attrs.confirmText}
-          </Button>
-          <Button className="Button Button--link" icon="fas fa-times" disabled={this.loading} onclick={() => this.hide()}>
             {attrs.cancelText || app.translator.trans('lowseekai-advertising.forum.auto_renewal_cancel')}
           </Button>
         </div>
@@ -815,7 +859,11 @@ class AdvertisingPage extends Page {
           value: app.translator.trans('lowseekai-advertising.forum.position_option', { position: ad.slotPosition || '-' }),
         },
         { label: app.translator.trans('lowseekai-advertising.forum.duration'), value: ad.durationLabel },
-        { label: app.translator.trans('lowseekai-advertising.forum.auto_renewal_price'), value: `${renewalPrice} ${currency}` },
+        {
+          label: app.translator.trans('lowseekai-advertising.forum.auto_renewal_price'),
+          value: `${renewalPrice} ${currency}`,
+          emphasis: true,
+        },
         {
           label: app.translator.trans('lowseekai-advertising.forum.current_expires_at'),
           value: ad.endsAt ? this.formatDate(ad.endsAt) : '-',
@@ -921,7 +969,11 @@ class AdvertisingPage extends Page {
         label: app.translator.trans('lowseekai-advertising.forum.position'),
         value: app.translator.trans('lowseekai-advertising.forum.position_option', { position: ad.slotPosition || '-' }),
       },
-      { label: app.translator.trans('lowseekai-advertising.forum.auto_renewal_price'), value: `${renewalPrice} ${currency}` },
+      {
+        label: app.translator.trans('lowseekai-advertising.forum.auto_renewal_price'),
+        value: `${renewalPrice} ${currency}`,
+        emphasis: true,
+      },
     ];
 
     if (enabled && ad.nextAutoRenewAt) {

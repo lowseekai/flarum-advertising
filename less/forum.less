@@ -268,10 +268,145 @@
   color: var(--muted-color);
 }
 
-.LowseekaiAdvertising-autoRenewalSummary {
+.LowseekaiAdvertisingAutoRenewalModal .Modal-dialog,
+.LowseekaiAdvertisingConfirmModal .Modal-dialog {
+  width: min(560px, calc(100% - 32px));
+  max-width: 560px;
+}
+
+.LowseekaiAdvertisingAutoRenewalModal .Modal-header,
+.LowseekaiAdvertisingConfirmModal .Modal-header {
+  padding: 22px 24px 10px;
+  border-bottom: 0;
+}
+
+.LowseekaiAdvertisingAutoRenewalModal .Modal-header h3,
+.LowseekaiAdvertisingConfirmModal .Modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.LowseekaiAdvertising-confirmBody {
+  padding: 10px 24px 24px;
+}
+
+.LowseekaiAdvertising-confirmIntro {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--control-bg);
+  border-radius: 8px;
+  background: var(--control-bg);
+}
+
+.LowseekaiAdvertising-confirmIntroIcon {
+  display: inline-flex;
+  flex: 0 0 34px;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: var(--button-color);
+  font-size: 14px;
+}
+
+.LowseekaiAdvertising-confirmIntroContent {
+  min-width: 0;
+}
+
+.LowseekaiAdvertising-confirmIntroTitle {
+  display: block;
+  margin: 0 0 4px;
+  color: var(--heading-color);
+  font-size: 15px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.LowseekaiAdvertising-confirmIntroContent p {
+  margin: 0;
+  color: var(--muted-color);
+  font-size: 13px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.LowseekaiAdvertising-confirmSummary {
   display: grid;
-  grid-template-columns: minmax(96px, auto) 1fr;
-  gap: 8px 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 16px 0 20px;
+}
+
+.LowseekaiAdvertising-confirmSummaryItem {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--control-bg);
+  border-radius: 6px;
+  background: var(--body-bg);
+}
+
+.LowseekaiAdvertising-confirmSummaryItem--wide {
+  grid-column: 1 / -1;
+}
+
+.LowseekaiAdvertising-confirmSummaryItem--price {
+  border-color: var(--primary-color);
+}
+
+.LowseekaiAdvertising-confirmSummaryItem dt {
+  margin: 0 0 5px;
+  color: var(--muted-color);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.LowseekaiAdvertising-confirmSummaryItem dd {
+  margin: 0;
+  color: var(--heading-color);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.LowseekaiAdvertising-confirmSummaryItem--price dd {
+  color: var(--primary-color);
+}
+
+.LowseekaiAdvertising-confirmActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.LowseekaiAdvertising-confirmActionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.LowseekaiAdvertising-confirmActions .Button {
+  width: 100%;
+  min-height: 42px;
+  justify-content: center;
+  margin: 0;
+}
+
+.LowseekaiAdvertising-confirmCancel {
+  align-self: center;
+  width: auto !important;
+  min-height: 32px !important;
+  padding-right: 12px;
+  padding-left: 12px;
+}
+
+.LowseekaiAdvertising-autoRenewalSummary {
   margin: 16px 0;
 }
 
@@ -308,5 +443,27 @@
   .LowseekaiAdvertising-right-sidebar,
   .LowseekaiAdvertising-top {
     display: none !important;
+  }
+
+  .LowseekaiAdvertisingAutoRenewalModal .Modal-dialog,
+  .LowseekaiAdvertisingConfirmModal .Modal-dialog {
+    width: calc(100% - 24px);
+  }
+
+  .LowseekaiAdvertisingAutoRenewalModal .Modal-header,
+  .LowseekaiAdvertisingConfirmModal .Modal-header {
+    padding: 18px 16px 8px;
+  }
+
+  .LowseekaiAdvertising-confirmBody {
+    padding: 8px 16px 18px;
+  }
+
+  .LowseekaiAdvertising-confirmSummary {
+    grid-template-columns: 1fr;
+  }
+
+  .LowseekaiAdvertising-confirmSummaryItem--wide {
+    grid-column: auto;
   }
 }
