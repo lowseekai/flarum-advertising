@@ -234,7 +234,7 @@ class AutoRenewalConfirmationModal extends Modal<AutoRenewalModalAttrs> {
       <div className="Modal-body LowseekaiAdvertising-confirmBody">
         <div className="LowseekaiAdvertising-confirmIntro">
           <span className="LowseekaiAdvertising-confirmIntroIcon" aria-hidden="true">
-            <i className={attrs.autoRenewalAvailable ? 'fas fa-sync-alt' : 'fas fa-paper-plane'} />
+            <i className={`icon ${attrs.autoRenewalAvailable ? 'fas fa-sync-alt' : 'fas fa-paper-plane'}`} />
           </span>
           <div className="LowseekaiAdvertising-confirmIntroContent">
             <strong className="LowseekaiAdvertising-confirmIntroTitle">{attrs.titleText}</strong>
@@ -363,7 +363,7 @@ class ConfirmationActionModal extends Modal<ConfirmationActionModalAttrs> {
       <div className="Modal-body LowseekaiAdvertising-confirmBody">
         <div className="LowseekaiAdvertising-confirmIntro">
           <span className="LowseekaiAdvertising-confirmIntroIcon" aria-hidden="true">
-            <i className="fas fa-circle-info" />
+            <i className="icon fas fa-info-circle" />
           </span>
           <div className="LowseekaiAdvertising-confirmIntroContent">
             <p>{attrs.bodyText}</p>
