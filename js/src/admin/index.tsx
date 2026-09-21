@@ -145,6 +145,21 @@ class AdvertisingSettingsPage extends ExtensionPage {
     return `${app.forum.attribute('apiUrl')}${path}`;
   }
 
+  async getJson(path: string) {
+    const response = await fetch(this.apiUrl(path), {
+      credentials: 'same-origin',
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
   hydrateFromSharedState() {
     if (!this.configLoaded && sharedAdminState.configLoaded) {
       this.config = { ...sharedAdminState.config };
@@ -159,7 +174,7 @@ class AdvertisingSettingsPage extends ExtensionPage {
 
   async loadConfig() {
     try {
-      const response: any = await app.request({ method: 'GET', url: this.apiUrl('/advertising/admin/config') });
+      const response: any = await this.getJson('/advertising/admin/config');
       this.config = { ...this.config, ...(response.data || {}) };
       sharedAdminState.config = { ...this.config };
       sharedAdminState.configLoaded = true;
@@ -175,7 +190,7 @@ class AdvertisingSettingsPage extends ExtensionPage {
     this.loadingAds = true;
 
     try {
-      const response: any = await app.request({ method: 'GET', url: this.apiUrl('/advertising/admin/ads') });
+      const response: any = await this.getJson('/advertising/admin/ads');
       this.ads = Array.isArray(response.data) ? response.data : [];
       sharedAdminState.ads = this.ads;
       sharedAdminState.adsLoaded = true;
