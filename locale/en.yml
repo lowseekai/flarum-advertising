@@ -194,7 +194,7 @@ lowseekai-advertising:
     notification_cancelled: "Your advertisement reservation “{title}” was cancelled. Any charged points were refunded when applicable. Slot: {slot}."
     notification_pending_label: "Advertising applications"
     notification_reviewed_label: "Advertising review results"
-    notification_pending: "User {user} submitted an advertisement: {title}. Estimated cost: {price} points."
+    notification_pending: "User {applicant} submitted an advertisement: {title}. Estimated cost: {price} points."
     notification_approved: "Your advertisement “{title}” was approved. {price} points were charged. Slot: {slot}, starts: {startsAt}, expires: {endsAt}."
     notification_rejected: "Your advertisement “{title}” was rejected."
     notification_rejected_with_note: "Your advertisement “{title}” was rejected. Note: {note}"

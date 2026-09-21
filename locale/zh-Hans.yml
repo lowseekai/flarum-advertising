@@ -192,7 +192,7 @@ lowseekai-advertising:
     status_cancelled: "已取消"
     notification_pending_label: "广告申请"
     notification_reviewed_label: "广告审核结果"
-    notification_pending: "用户 {user} 提交了广告申请：{title}，预计消耗 {price} 积分。"
+    notification_pending: "用户 {applicant} 提交了广告申请：{title}，预计消耗 {price} 积分。"
     notification_approved: "你的广告“{title}”已通过审核，已扣除 {price} 积分。广告位：{slot}，生效时间：{startsAt}，到期时间：{endsAt}。"
     notification_rejected: "你的广告“{title}”未通过审核。"
     notification_rejected_with_note: "你的广告“{title}”未通过审核。备注：{note}"

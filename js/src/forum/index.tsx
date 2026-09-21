@@ -181,7 +181,7 @@ class AdPendingReviewNotification extends Notification {
     const data = this.attrs.notification.content<AdvertisingNotificationData>() || {};
 
     return app.translator.trans('lowseekai-advertising.forum.notification_pending', {
-      user: data.applicantName || '',
+      applicant: data.applicantName || '',
       title: data.title || '',
       price: data.totalPrice || 0,
     });
