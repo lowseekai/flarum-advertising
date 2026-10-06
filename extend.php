@@ -12,6 +12,7 @@ use Illuminate\Console\Scheduling\Event;
 use Lowseekai\Advertising\Api\Controller\AdminListAdsController;
 use Lowseekai\Advertising\Api\Controller\CancelAdController;
 use Lowseekai\Advertising\Api\Controller\CreateAdController;
+use Lowseekai\Advertising\Api\Controller\DeleteAdminAdController;
 use Lowseekai\Advertising\Api\Controller\GetAdminConfigController;
 use Lowseekai\Advertising\Api\Controller\ListMyAdsController;
 use Lowseekai\Advertising\Api\Controller\ListPublicAdsController;
@@ -61,6 +62,7 @@ return [
         ->get('/advertising/admin/ads', 'lowseekai-advertising.admin.ads', AdminListAdsController::class)
         ->patch('/advertising/admin/ads/{id:[0-9]+}', 'lowseekai-advertising.admin.ads.update', UpdateAdminAdController::class)
         ->post('/advertising/admin/ads/{id:[0-9]+}/update', 'lowseekai-advertising.admin.ads.update.post', UpdateAdminAdController::class)
+        ->delete('/advertising/admin/ads/{id:[0-9]+}', 'lowseekai-advertising.admin.ads.delete', DeleteAdminAdController::class)
         ->get('/advertising/admin/config', 'lowseekai-advertising.admin.config', GetAdminConfigController::class)
         ->post('/advertising/admin/config', 'lowseekai-advertising.admin.config.save', SaveAdminConfigController::class),
 

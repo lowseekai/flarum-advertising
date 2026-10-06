@@ -154,6 +154,19 @@ class AdRepository
         return $updated;
     }
 
+    public function deleteByAdmin(Ad $ad): void
+    {
+        if (! in_array((string) $ad->status, ['hidden', 'expired', 'rejected', 'cancelled'], true)) {
+            throw new ValidationException(['status' => '只有已下架、已过期、已拒绝或已取消的广告可以删除。']);
+        }
+
+        $this->db->transaction(function () use ($ad) {
+            $this->autoGroups->releaseAd($ad);
+            AdRenewal::query()->where('ad_id', (int) $ad->id)->delete();
+            $ad->delete();
+        });
+    }
+
     public function setAutoRenew(User $actor, Ad $ad, bool $enabled): Ad
     {
         if ($enabled && ! $this->settings->autoRenewalEnabled()) {

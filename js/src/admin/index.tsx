@@ -594,6 +594,17 @@ class AdvertisingSettingsPage extends ExtensionPage {
                 {app.translator.trans('lowseekai-advertising.admin.restore')}
               </Button>
             ) : null}
+            {['hidden', 'expired', 'rejected', 'cancelled'].includes(ad.status) ? (
+              <Button
+                className="Button Button--danger"
+                icon="fas fa-trash"
+                loading={busy}
+                disabled={busy}
+                onclick={() => this.deleteAd(ad)}
+              >
+                {app.translator.trans('lowseekai-advertising.admin.delete')}
+              </Button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -640,6 +651,25 @@ class AdvertisingSettingsPage extends ExtensionPage {
           }`
         )
       );
+    } catch (error) {
+      app.alerts.show({ type: 'error' }, this.errorMessage(error));
+    } finally {
+      this.savingAd = null;
+      m.redraw();
+    }
+  }
+
+  async deleteAd(ad: AdRecord) {
+    if (!window.confirm(String(app.translator.trans('lowseekai-advertising.admin.delete_confirm', { title: ad.title })))) return;
+
+    this.savingAd = ad.id;
+    try {
+      await app.request({
+        method: 'DELETE',
+        url: this.apiUrl(`/advertising/admin/ads/${ad.id}`),
+      });
+      await this.loadAds();
+      app.alerts.show({ type: 'success' }, app.translator.trans('lowseekai-advertising.admin.deleted'));
     } catch (error) {
       app.alerts.show({ type: 'error' }, this.errorMessage(error));
     } finally {

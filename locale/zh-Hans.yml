@@ -1,6 +1,9 @@
 lowseekai-advertising:
   error: "操作失败，请稍后重试。"
   admin:
+    delete: "删除"
+    delete_confirm: "确定永久删除广告“{title}”吗？此操作无法撤销。"
+    deleted: "广告已删除。"
     title: "广告管理"
     help: "配置广告位、月价格，并审核用户提交的广告。"
     enabled: "开放广告位购买"
