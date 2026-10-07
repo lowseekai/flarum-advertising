@@ -1292,7 +1292,6 @@ class AdvertisingSlotGrid extends Component<{ slot: 'left_sidebar' | 'right_side
       visibleEmptySlots += 1;
       return slot === 'top' || visibleEmptySlots <= visibleEmptySlotLimit;
     });
-    const hiddenEmptySlots = slot !== 'top' ? Math.max(0, capacity - adsByPosition.size - visibleEmptySlotLimit) : 0;
     const slotClass = slot.replace('_', '-');
 
     return (
@@ -1313,11 +1312,6 @@ class AdvertisingSlotGrid extends Component<{ slot: 'left_sidebar' | 'right_side
             </a>
           )
         )}
-        {slot !== 'top' && hiddenEmptySlots > 0 ? (
-          <a className="LowseekaiAdvertising-viewAll" href={app.route('lowseekai-advertising.index')}>
-            {app.translator.trans('lowseekai-advertising.forum.view_all_slots')}
-          </a>
-        ) : null}
       </div>
     );
   }
