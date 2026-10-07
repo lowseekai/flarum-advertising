@@ -21,7 +21,6 @@ type SlotConfig = {
   label: string;
   enabled: boolean;
   capacity: number;
-  displayCount?: number;
   pricePerMonth: number;
   positions?: SlotPosition[];
   availableCount?: number;
@@ -100,7 +99,6 @@ function fallbackSlots(): SlotConfig[] {
       label: '顶部广告位',
       enabled: Boolean(app.forum.attribute('lowseekaiAdvertisingTopEnabled') ?? true),
       capacity: TOP_SLOT_COUNT,
-      displayCount: TOP_SLOT_COUNT,
       pricePerMonth: Number(app.forum.attribute('lowseekaiAdvertisingTopPricePerMonth') || 0),
     },
     {
@@ -108,7 +106,6 @@ function fallbackSlots(): SlotConfig[] {
       label: '左侧栏广告位',
       enabled: Boolean(app.forum.attribute('lowseekaiAdvertisingLeftSidebarEnabled') ?? false),
       capacity: Number(app.forum.attribute('lowseekaiAdvertisingLeftSidebarSlots') || 10),
-      displayCount: Number(app.forum.attribute('lowseekaiAdvertisingLeftSidebarDisplaySlots') || 3),
       pricePerMonth: Number(app.forum.attribute('lowseekaiAdvertisingLeftSidebarPricePerMonth') || 0),
     },
     {
@@ -118,7 +115,6 @@ function fallbackSlots(): SlotConfig[] {
         app.forum.attribute('lowseekaiAdvertisingRightSidebarEnabled') ?? app.forum.attribute('lowseekaiAdvertisingSidebarEnabled') ?? true
       ),
       capacity: Number(app.forum.attribute('lowseekaiAdvertisingRightSidebarSlots') || app.forum.attribute('lowseekaiAdvertisingSidebarSlots') || 10),
-      displayCount: Number(app.forum.attribute('lowseekaiAdvertisingRightSidebarDisplaySlots') || 3),
       pricePerMonth: Number(
         app.forum.attribute('lowseekaiAdvertisingRightSidebarPricePerMonth') || app.forum.attribute('lowseekaiAdvertisingSidebarPricePerMonth') || 0
       ),
@@ -1279,18 +1275,11 @@ class AdvertisingSlotGrid extends Component<{ slot: 'left_sidebar' | 'right_side
       }
     });
 
-    const visibleEmptySlotLimit = slot === 'top' ? capacity : Math.max(1, Math.min(capacity, Number(this.config.displayCount) || 3));
-    let visibleEmptySlots = 0;
     const slotItems = Array.from({ length: capacity }, (_, index) => {
       const position = index + 1;
       const ad = adsByPosition.get(position) || null;
 
       return { ad, position };
-    }).filter(({ ad }) => {
-      if (ad) return true;
-
-      visibleEmptySlots += 1;
-      return slot === 'top' || visibleEmptySlots <= visibleEmptySlotLimit;
     });
     const slotClass = slot.replace('_', '-');
 
