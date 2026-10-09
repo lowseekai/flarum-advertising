@@ -319,9 +319,9 @@ class AdvertisingSettingsPage extends ExtensionPage {
             {app.translator.trans('lowseekai-advertising.admin.reservation_enabled')}
           </Switch>
         </div>
-        {this.numberField('reservationLeadDays', 'lowseekai-advertising.admin.reservation_lead_days', 1, 90)}
-        {this.numberField('reservationWaitDays', 'lowseekai-advertising.admin.reservation_wait_days', 1, 365)}
-        {this.numberField('reservationMaxQueue', 'lowseekai-advertising.admin.reservation_max_queue', 1, 100)}
+        {this.numberField('reservationLeadDays', 'lowseekai-advertising.admin.reservation_lead_days', 1, 90, 'lowseekai-advertising.admin.reservation_lead_days_help')}
+        {this.numberField('reservationWaitDays', 'lowseekai-advertising.admin.reservation_wait_days', 1, 365, 'lowseekai-advertising.admin.reservation_wait_days_help')}
+        {this.numberField('reservationMaxQueue', 'lowseekai-advertising.admin.reservation_max_queue', 1, 100, 'lowseekai-advertising.admin.reservation_max_queue_help')}
         <div className="Form-group">
           <Switch state={this.config.reservationTopEnabled} onchange={(value: boolean) => (this.config.reservationTopEnabled = value)}>
             {app.translator.trans('lowseekai-advertising.admin.reservation_top_enabled')}
@@ -406,11 +406,13 @@ class AdvertisingSettingsPage extends ExtensionPage {
     >,
     labelKey: string,
     min: number,
-    max?: number
+    max?: number,
+    helpKey?: string
   ) {
     return (
       <div className="Form-group">
         <label>{app.translator.trans(labelKey)}</label>
+        {helpKey ? <p className="helpText">{app.translator.trans(helpKey)}</p> : null}
         <input
           type="number"
           min={min}
