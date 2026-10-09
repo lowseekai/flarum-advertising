@@ -128,7 +128,6 @@ class ListPublicAdsController implements RequestHandlerInterface
                 'isFull' => $availableCount === 0,
                 'reservable' => $reservable,
                 'reservationBanner' => $reservationEnabled
-                    && $availableCount === 0
                     && $earliestRelease !== null
                     && $queueCount < $this->settings->reservationMaxQueue(),
                 'earliestReleaseAt' => $earliestRelease?->timezone('Asia/Shanghai')->format('Y-m-d H:i:s'),
