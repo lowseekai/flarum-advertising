@@ -84,6 +84,7 @@ lowseekai-advertising:
       submit: "Submit advertising campaigns"
       manage: "Manage and review advertising campaigns"
       auto_group: "Configure approval auto-group"
+      auto_group_retain: "Keep the auto-granted group after an advertisement expires"
   forum:
     title: "Advertising"
     nav: "Advertising"

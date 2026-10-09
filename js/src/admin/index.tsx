@@ -787,5 +787,14 @@ app.initializers.add('lowseekai/advertising/admin', () => {
         allowGuest: false,
       },
       'moderate'
+    )
+    .registerPermission(
+      {
+        icon: 'fas fa-user-lock',
+        label: app.translator.trans('lowseekai-advertising.admin.permissions.auto_group_retain'),
+        permission: 'lowseekai-advertising.auto_group_retain',
+        allowGuest: false,
+      },
+      'moderate'
     );
 });

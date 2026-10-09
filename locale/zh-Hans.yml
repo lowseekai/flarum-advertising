@@ -84,6 +84,7 @@ lowseekai-advertising:
       submit: "提交广告活动"
       manage: "管理和审核广告活动"
       auto_group: "配置广告审核自动用户组"
+      auto_group_retain: "广告过期后保留自动获取的用户组"
   forum:
     title: "广告中心"
     nav: "广告中心"

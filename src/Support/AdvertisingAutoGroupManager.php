@@ -36,6 +36,10 @@ class AdvertisingAutoGroupManager
             && (! $ad->ends_at || $ad->ends_at->gt(Carbon::now('Asia/Shanghai')));
 
         if (! $eligible) {
+            if ($this->shouldRetainForExpiredAd($ad)) {
+                return;
+            }
+
             $this->releaseAd($ad);
 
             return;
@@ -76,6 +80,13 @@ class AdvertisingAutoGroupManager
                 'updated_at' => $now,
             ]);
         }
+    }
+
+    protected function shouldRetainForExpiredAd(Ad $ad): bool
+    {
+        return $ad->status === 'expired'
+            && $ad->user
+            && $ad->user->hasPermission('lowseekai-advertising.auto_group_retain');
     }
 
     public function reconcile(): void

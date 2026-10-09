@@ -127,7 +127,7 @@ return [
     (new Extend\Console())
         ->command(ExpireAdsCommand::class)
         ->schedule(ExpireAdsCommand::class, function (Event $event) {
-            $event->hourly();
+            $event->everyFiveMinutes();
         }),
 
     (new Extend\Console())
