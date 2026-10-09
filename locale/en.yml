@@ -117,6 +117,7 @@ lowseekai-advertising:
     reserve: "Reserve"
     reservation_banner_title: "Reservable advertising slots"
     reservation_banner_intro: "The following advertising areas will be released soon and can be reserved:"
+    reservation_banner_link: "Reserve an advertising slot"
     title_label: "Advertisement title"
     url: "Destination URL"
     image: "Advertisement image"

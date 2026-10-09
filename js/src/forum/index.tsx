@@ -28,6 +28,7 @@ type SlotConfig = {
   reservable?: boolean;
   earliestReleaseAt?: string | null;
   reservationQueueCount?: number;
+  reservationBanner?: boolean;
   myReservationQueuePosition?: number | null;
 };
 type AdRecord = {
@@ -1285,6 +1286,16 @@ class AdvertisingSlotGrid extends Component<{ slot: 'left_sidebar' | 'right_side
 
     return (
       <div className={`LowseekaiAdvertising-${slotClass}`}>
+        {this.config.reservationBanner ? (
+          <a
+            className="LowseekaiAdvertising-reservationSlotBanner"
+            href={app.route('lowseekai-advertising.index')}
+            aria-label={app.translator.trans('lowseekai-advertising.forum.reservation_banner_link')}
+          >
+            <i className="fas fa-calendar-check" aria-hidden="true" />
+            <span>{app.translator.trans('lowseekai-advertising.forum.reservation_banner_link')}</span>
+          </a>
+        ) : null}
         {slotItems.map(({ ad, position }) =>
           ad ? (
             <AdCard ad={ad} placement={slot} key={ad.id} />

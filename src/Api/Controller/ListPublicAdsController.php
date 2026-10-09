@@ -117,6 +117,7 @@ class ListPublicAdsController implements RequestHandlerInterface
             $availableCount = collect($positions)->where('available', true)->count();
             $earliestRelease = $this->ads->earliestReservableReleaseAt($slot['key']);
             $queueCount = $this->ads->reservationQueueCount($slot['key']);
+            $reservationEnabled = $this->settings->slotReservationEnabled($slot['key']);
             $reservable = $availableCount === 0
                 && ! $actor->isGuest()
                 && $this->ads->canReserveSlot($slot['key'], $actor);
@@ -126,6 +127,10 @@ class ListPublicAdsController implements RequestHandlerInterface
                 'availableCount' => $availableCount,
                 'isFull' => $availableCount === 0,
                 'reservable' => $reservable,
+                'reservationBanner' => $reservationEnabled
+                    && $availableCount === 0
+                    && $earliestRelease !== null
+                    && $queueCount < $this->settings->reservationMaxQueue(),
                 'earliestReleaseAt' => $earliestRelease?->timezone('Asia/Shanghai')->format('Y-m-d H:i:s'),
                 'reservationQueueCount' => $queueCount,
                 'myReservationQueuePosition' => $actor->isGuest() ? null : $this->userQueuePosition($slot['key'], $actor),

@@ -117,6 +117,7 @@ lowseekai-advertising:
     reserve: "预定"
     reservation_banner_title: "可预定广告位"
     reservation_banner_intro: "以下广告区域即将释放，可提前预定："
+    reservation_banner_link: "可预定广告位"
     title_label: "广告标题"
     url: "跳转链接"
     image: "广告图片"
