@@ -832,7 +832,13 @@ class AdvertisingPage extends Page {
           </select>
           <p className="helpText">{app.translator.trans('lowseekai-advertising.forum.price_help', { price: total, balance, currency })}</p>
           {insufficient ? (
-            <p className="helpText LowseekaiAdvertising-insufficient">{app.translator.trans('lowseekai-advertising.forum.insufficient_points')}</p>
+            <div className="LowseekaiAdvertising-insufficientBox">
+              <p className="helpText LowseekaiAdvertising-insufficient">
+                {app.translator.trans('lowseekai-advertising.forum.insufficient_points', {
+                  a: (text: string) => m('a', { href: 'https://lowseek.ai/point-redemption' }, text),
+                })}
+              </p>
+            </div>
           ) : null}
         </div>
         {app.forum.attribute('lowseekaiAdvertisingAutoRenewalEnabled') && !canReserve ? (

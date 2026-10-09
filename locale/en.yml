@@ -134,7 +134,7 @@ lowseekai-advertising:
     six_months: "6 months"
     one_year: "1 year"
     price_help: "Estimated cost: {price} {currency}. Current balance: {balance} {currency}."
-    insufficient_points: "Insufficient points. Earn more points before submitting an advertising application."
+    insufficient_points: "Your points balance is insufficient to submit this advertising application. Earn points or visit the <a>Points Redemption Center</a> to get more points before submitting."
     submit: "Submit for review"
     submit_reservation: "Submit reservation review"
     upload_success: "Image uploaded."

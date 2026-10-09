@@ -134,7 +134,7 @@ lowseekai-advertising:
     six_months: "半年"
     one_year: "一年"
     price_help: "预计消耗 {price} {currency}，当前余额 {balance} {currency}。"
-    insufficient_points: "积分不足，需要赚取积分后再提交广告申请。"
+    insufficient_points: "积分不足，暂时无法提交广告申请。你可以先赚取积分，或前往<a>积分兑换中心</a>获取积分后再提交。"
     submit: "提交审核"
     submit_reservation: "提交预定审核"
     upload_success: "图片上传成功。"

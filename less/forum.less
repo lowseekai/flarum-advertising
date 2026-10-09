@@ -12,6 +12,32 @@
   padding-bottom: 24px;
 }
 
+.LowseekaiAdvertising-insufficientBox {
+  display: block;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--error-color);
+  border-radius: 4px;
+  background: var(--body-bg);
+}
+
+.LowseekaiAdvertising-insufficient {
+  margin: 0;
+  color: var(--error-color);
+  white-space: nowrap;
+}
+
+.LowseekaiAdvertising-insufficient a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+@media (max-width: 520px) {
+  .LowseekaiAdvertising-insufficient {
+    white-space: normal;
+  }
+}
+
 .LowseekaiAdvertisingHero {
   margin-bottom: 20px;
 }
