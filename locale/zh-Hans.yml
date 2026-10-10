@@ -210,6 +210,8 @@ lowseekai-advertising:
     notification_auto_renewal_succeeded: "广告“{title}”已自动续费，扣除 {amount} 积分，新的到期时间：{endsAt}。"
     notification_auto_renewal_failed: "广告“{title}”自动续费失败，已停止自动续费。{reason}"
     notification_auto_renewal_price_changed: "广告“{title}”因价格变化已暂停自动续费，请手动确认新的续费价格。"
+    notification_auto_group_granted_label: "广告用户组授权"
+    notification_auto_group_granted: "你的广告“{title}”已通过审核，系统已自动将你加入“{groupName}”用户组。"
   email:
     pending_review:
       subject: "新的广告申请：{title}"

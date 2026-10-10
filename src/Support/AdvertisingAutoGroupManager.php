@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Lowseekai\Advertising\Support;
 
 use Carbon\Carbon;
+use Flarum\Group\Group;
 use Illuminate\Database\ConnectionInterface;
 use Lowseekai\Advertising\Model\Ad;
 
@@ -15,6 +16,7 @@ class AdvertisingAutoGroupManager
     public function __construct(
         protected AdvertisingSettings $settings,
         protected ConnectionInterface $db,
+        protected AdvertisingNotifier $notifier,
     ) {
     }
 
@@ -30,10 +32,14 @@ class AdvertisingAutoGroupManager
 
         $this->releaseAdFromOtherGroups($ad, $groupId);
 
+        $now = Carbon::now('Asia/Shanghai')->format('Y-m-d H:i:s');
+        $startsAt = $ad->getRawOriginal('starts_at');
+        $endsAt = $ad->getRawOriginal('ends_at');
+
         $eligible = $ad->status === 'approved'
             && (bool) $ad->is_visible
-            && (! $ad->starts_at || $ad->starts_at->lte(Carbon::now('Asia/Shanghai')))
-            && (! $ad->ends_at || $ad->ends_at->gt(Carbon::now('Asia/Shanghai')));
+            && (! $startsAt || $startsAt <= $now)
+            && (! $endsAt || $endsAt > $now);
 
         if (! $eligible) {
             if ($this->shouldRetainForExpiredAd($ad)) {
@@ -60,6 +66,11 @@ class AdvertisingAutoGroupManager
                 ->where('group_id', $groupId)
                 ->exists();
 
+        $hadMembership = $this->db->table('group_user')
+            ->where('user_id', (int) $ad->user_id)
+            ->where('group_id', $groupId)
+            ->exists();
+
         $this->db->table('group_user')->insertOrIgnore([
             'user_id' => (int) $ad->user_id,
             'group_id' => $groupId,
@@ -79,6 +90,12 @@ class AdvertisingAutoGroupManager
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
+        }
+
+        if (! $hadMembership) {
+            $ad->loadMissing('user');
+            $groupName = Group::query()->find($groupId)?->name_singular ?? (string) $groupId;
+            $this->notifier->notifyAutoGroupGranted($ad, $groupName);
         }
     }
 

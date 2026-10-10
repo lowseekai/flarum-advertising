@@ -77,6 +77,7 @@ type AdvertisingNotificationData = {
   event?: string;
   amount?: number;
   reason?: string;
+  groupName?: string;
 };
 
 const TOP_SLOT_COUNT = 4;
@@ -504,6 +505,29 @@ class AdAutoRenewalNotification extends Notification {
       amount: data.amount || 0,
       endsAt: data.endsAt || '',
       reason: data.reason || '',
+    });
+  }
+
+  excerpt() {
+    return null;
+  }
+}
+
+class AdAutoGroupGrantedNotification extends Notification {
+  icon() {
+    return 'fas fa-user-plus';
+  }
+
+  href() {
+    return app.route('lowseekai-advertising.index');
+  }
+
+  content() {
+    const data = this.attrs.notification.content<AdvertisingNotificationData>() || {};
+
+    return app.translator.trans('lowseekai-advertising.forum.notification_auto_group_granted', {
+      title: data.title || '',
+      groupName: data.groupName || '',
     });
   }
 
@@ -1330,6 +1354,7 @@ app.initializers.add('lowseekai/advertising/forum', () => {
   app.notificationComponents.lowseekaiAdvertisingAdPendingReview = AdPendingReviewNotification;
   app.notificationComponents.lowseekaiAdvertisingAdReviewed = AdReviewedNotification;
   app.notificationComponents.lowseekaiAdvertisingAutoRenewal = AdAutoRenewalNotification;
+  app.notificationComponents.lowseekaiAdvertisingAutoGroupGranted = AdAutoGroupGrantedNotification;
 
   extend('flarum/forum/components/NotificationGrid', 'notificationTypes', (items: any) => {
     items.add('lowseekaiAdvertisingAdPendingReview', {
@@ -1346,6 +1371,11 @@ app.initializers.add('lowseekai/advertising/forum', () => {
       name: 'lowseekaiAdvertisingAutoRenewal',
       icon: 'fas fa-sync-alt',
       label: app.translator.trans('lowseekai-advertising.forum.notification_auto_renewal_label'),
+    });
+    items.add('lowseekaiAdvertisingAutoGroupGranted', {
+      name: 'lowseekaiAdvertisingAutoGroupGranted',
+      icon: 'fas fa-user-plus',
+      label: app.translator.trans('lowseekai-advertising.forum.notification_auto_group_granted_label'),
     });
   });
 

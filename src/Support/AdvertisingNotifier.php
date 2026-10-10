@@ -12,6 +12,7 @@ use Lowseekai\Advertising\Model\Ad;
 use Lowseekai\Advertising\Notification\AdPendingReviewBlueprint;
 use Lowseekai\Advertising\Notification\AdReviewedBlueprint;
 use Lowseekai\Advertising\Notification\AdAutoRenewalBlueprint;
+use Lowseekai\Advertising\Notification\AdAutoGroupGrantedBlueprint;
 
 class AdvertisingNotifier
 {
@@ -52,6 +53,17 @@ class AdvertisingNotifier
         }
 
         $this->notifications->sync(new AdAutoRenewalBlueprint($ad, $event, $reason, $amount), [$ad->user]);
+    }
+
+    public function notifyAutoGroupGranted(Ad $ad, string $groupName): void
+    {
+        $ad->loadMissing('user');
+
+        if (! $ad->user) {
+            return;
+        }
+
+        $this->notifications->sync(new AdAutoGroupGrantedBlueprint($ad, $groupName), [$ad->user]);
     }
 
     protected function reviewRecipients(User $applicant): array

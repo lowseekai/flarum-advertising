@@ -27,6 +27,7 @@ use Lowseekai\Advertising\Console\AutoRenewAdsCommand;
 use Lowseekai\Advertising\Notification\AdPendingReviewBlueprint;
 use Lowseekai\Advertising\Notification\AdReviewedBlueprint;
 use Lowseekai\Advertising\Notification\AdAutoRenewalBlueprint;
+use Lowseekai\Advertising\Notification\AdAutoGroupGrantedBlueprint;
 use Lowseekai\Advertising\Support\AdvertisingSettings;
 use Ramon\PointSystem\Repository\PointsRepository;
 
@@ -48,7 +49,8 @@ return [
     (new Extend\Notification())
         ->type(AdPendingReviewBlueprint::class, ['alert', 'email'])
         ->type(AdReviewedBlueprint::class, ['alert', 'email'])
-        ->type(AdAutoRenewalBlueprint::class, ['alert', 'email']),
+        ->type(AdAutoRenewalBlueprint::class, ['alert', 'email'])
+        ->type(AdAutoGroupGrantedBlueprint::class, ['alert']),
 
     (new Extend\Routes('api'))
         ->get('/advertising/public/ads', 'lowseekai-advertising.public.ads', ListPublicAdsController::class)

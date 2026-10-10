@@ -210,6 +210,8 @@ lowseekai-advertising:
     notification_auto_renewal_succeeded: "“{title}” was automatically renewed for {amount} points. New expiry: {endsAt}."
     notification_auto_renewal_failed: "Automatic renewal for “{title}” failed and was stopped. {reason}"
     notification_auto_renewal_price_changed: "Automatic renewal for “{title}” was paused because the price changed. Please confirm renewal manually."
+    notification_auto_group_granted_label: "Advertising group access"
+    notification_auto_group_granted: "Your advertisement “{title}” was approved, and you were automatically added to the “{groupName}” group."
   email:
     pending_review:
       subject: "New advertising application: {title}"
