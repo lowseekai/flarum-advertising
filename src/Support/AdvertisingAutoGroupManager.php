@@ -33,12 +33,12 @@ class AdvertisingAutoGroupManager
         $this->releaseAdFromOtherGroups($ad, $groupId);
 
         $now = Carbon::now('Asia/Shanghai')->format('Y-m-d H:i:s');
-        $startsAt = $ad->getRawOriginal('starts_at');
         $endsAt = $ad->getRawOriginal('ends_at');
 
+        // Approval grants the configured group immediately. A future start time
+        // controls ad visibility timing, but must not delay the approval benefit.
         $eligible = $ad->status === 'approved'
             && (bool) $ad->is_visible
-            && (! $startsAt || $startsAt <= $now)
             && (! $endsAt || $endsAt > $now);
 
         if (! $eligible) {
